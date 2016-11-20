@@ -19,7 +19,7 @@ setup(
             'htsget=htsget.cli:htsget_main',
         ]
     },
-    install_requires=["requests"],
+    install_requires=["requests", "six"],
     keywords=["BAM", "CRAM", "Streaming"],
     license="Apache 2.0",
     classifiers=[

@@ -1,4 +1,6 @@
-nose
 codecov
 coverage
 flake8
+nose
+requests
+six
