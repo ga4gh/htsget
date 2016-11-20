@@ -18,6 +18,7 @@ def ticket_request_url(
     """
     parsed_url = urlparse(url)
     get_vars = parse_qs(parsed_url.query)
+    # TODO error checking
     if fmt is not None:
         get_vars["format"] = fmt.upper()
     if reference_name is not None:
@@ -38,3 +39,52 @@ def ticket_request_url(
     new_url = list(parsed_url)
     new_url[4] = urlencode(get_vars, doseq=True)
     return urlunparse(new_url)
+
+
+class ChunkRequest(object):
+    """
+    A chunk is a single retryable chunk of the data slice requested by
+    the client. It corresponds to a single URL provided by the ticket
+    server.
+    """
+    def __init__(self, parsed_url):
+        self.parsed_url = parsed_url
+
+
+class HttpChunkRequest(ChunkRequest):
+    """
+    A chunk that is to be obtained from a HTTP resource.
+    """
+    def __init__(self, parsed_url, headers):
+        super(HttpChunkRequest, self).__init__(parsed_url)
+        self.headers = headers
+
+
+class DataUriChunkRequest(ChunkRequest):
+    """
+    A chunk that is obtained directly from a data URI.
+    """
+    def __init__(self, parsed_url):
+        super(DataUriChunkRequest, self).__init__(parsed_url)
+
+
+class SliceRequest(object):
+    """
+    A slice request corresponds to a single data request for a
+    (reference_name, start, end) slice in the data. Each slice is composed
+    of one of more chunks which must be concatenated together to obtain
+    the resulting data.
+    """
+    def __init__(self, ticket):
+        self.format = ticket.get("format", "BAM")
+        self.md5 = ticket.get("md5", None)
+        self.chunk_requests = []
+        for url_object in ticket["urls"]:
+            url = urlparse(url_object["url"])
+            if url.scheme.startswith("http"):
+                headers = url_object.get("headers", "")
+                self.chunk_requests.append(HttpChunkRequest(url, headers))
+            elif url.scheme == "data":
+                self.chunk_requests.append(DataUriChunkRequest(url))
+            else:
+                raise ValueError("Unsupported URL scheme:{}".format(url.scheme))

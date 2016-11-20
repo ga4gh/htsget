@@ -84,3 +84,52 @@ class TestTicketRequestUrl(unittest.TestCase):
         self.assertEqual(query["a"], ["a"])
         self.assertEqual(query["b"], ["b"])
         self.assertEqual(query["referenceName"], ["123"])
+
+
+def get_http_ticket(url, headers={}):
+    return {"url": url, "headers": headers}
+
+
+def get_data_uri_ticket(url):
+    return {"url": url}
+
+
+def get_ticket(urls=[], format_=None, md5=None):
+    d = {"urls": urls}
+    if format_ is not None:
+        d["format"] = format_
+    if md5 is not None:
+        d["md5"] = md5
+    return d
+
+
+class TestSliceRequest(unittest.TestCase):
+    """
+    Test cases for building a slice request object from a ticket response.
+    """
+    def test_bad_scheme(self):
+        for bad_scheme in ["htt://as", "file:///home", "ftp://x.y/sdf"]:
+            ticket = get_ticket(urls=[
+                get_http_ticket("http://a.b"),
+                get_http_ticket("htp")])
+            self.assertRaises(ValueError, protocol.SliceRequest, ticket)
+
+    def test_basic_http_parsing(self):
+        headers = {"a": "b", "b": "c"}
+        ticket = get_ticket(urls=[get_http_ticket("http://example.com", headers)])
+        slice_request = protocol.SliceRequest(ticket)
+        self.assertEqual(len(slice_request.chunk_requests), 1)
+        chunk_request = slice_request.chunk_requests[0]
+        self.assertIsInstance(chunk_request, protocol.HttpChunkRequest)
+        self.assertEqual(chunk_request.parsed_url.scheme, "http")
+        self.assertEqual(chunk_request.parsed_url.netloc, "example.com")
+        self.assertEqual(chunk_request.headers, headers)
+
+    def test_basic_data_uri_parsing(self):
+        data_uri = "data:application/vnd.ga4gh.bam;base64,SGVsbG8sIFdvcmxkIQ=="
+        ticket = get_ticket(urls=[get_data_uri_ticket(data_uri)])
+        slice_request = protocol.SliceRequest(ticket)
+        self.assertEqual(len(slice_request.chunk_requests), 1)
+        chunk_request = slice_request.chunk_requests[0]
+        self.assertIsInstance(chunk_request, protocol.DataUriChunkRequest)
+        self.assertEqual(chunk_request.parsed_url.scheme, "data")
