@@ -1,0 +1,34 @@
+sudo: false
+
+cache:
+  apt: true
+  pip: true
+  directories:
+    - $HOME/.cache/pip
+    - $HOME/.local
+
+language: python
+
+python:
+  - "2.7"
+  - "3.3"
+  - "3.4"
+
+install:
+  # Install newer version of pip to take advantage of bdist_wheel cache.
+  - pip install pip --upgrade
+  - pip install -r requirements_dev.txt
+  - python setup.py install
+
+script:
+  - flake8 --max-line-length 89 setup.py htsget tests
+  - nosetests -v --with-coverage --cover-package htsget m
+      --cover-branches --cover-erase --cover-xml
+      --cover-inclusive --cover-min-percentage 90 tests
+  - make -C docs
+  # Make sure we can install successfully.
+  - python setup.py sdist
+  - pip install dist/htsget*.tar.gz --no-cache-dir
+
+# after_success:
+#   - codecov 
