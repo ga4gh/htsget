@@ -1,7 +1,6 @@
 sudo: false
 
 cache:
-  apt: true
   pip: true
   directories:
     - $HOME/.cache/pip
@@ -22,13 +21,13 @@ install:
 
 script:
   - flake8 --max-line-length 89 setup.py htsget tests
-  - nosetests -v --with-coverage --cover-package htsget m
+  - nosetests -v --with-coverage --cover-package htsget 
       --cover-branches --cover-erase --cover-xml
-      --cover-inclusive --cover-min-percentage 90 tests
-  - make -C docs
+      --cover-inclusive --cover-min-percentage 70 tests
+  # - make -C docs
   # Make sure we can install successfully.
   - python setup.py sdist
   - pip install dist/htsget*.tar.gz --no-cache-dir
 
-# after_success:
-#   - codecov 
+after_success:
+  - codecov 
