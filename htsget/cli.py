@@ -35,19 +35,10 @@ def run(args):
     #     log_level = logging.INFO
     # logging.basicConfig(format='%(asctime)s %(message)s', level=log_level)
 
-    # client = gaclient.Client(
-    #     base_url=args.url,
-    #     id_=args.id,
-    #     reference_name=args.reference_name,
-    #     start=args.start,
-    #     end=args.end,
-    #     output_file=args.output)
-
-    # client.download()
-    # client.close()
-
     with open(args.output, 'w') as f:
-        htsget.get(args.url, f)
+        htsget.get(
+            args.url, f, reference_name=args.reference_name, start=args.start,
+            end=args.end)
 
 
 def get_htsget_parser():

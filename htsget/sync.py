@@ -24,20 +24,31 @@ import requests
 
 import htsget.protocol as protocol
 
+CONTENT_LENGTH = "Content-Length"
+
+
+class SynchronousHttpChunkRequest(protocol.HttpChunkRequest):
+
+    def run(self, output_file):
+        response = requests.get(
+            self.url, headers=self.headers, stream=True, timeout=5)
+        response.raise_for_status()
+        length = 0
+        # We download this chunk in small pieces.
+        piece_size = 8192
+        for piece in response.iter_content(piece_size):
+            length += len(piece)
+            output_file.write(piece)
+        if CONTENT_LENGTH in response.headers:
+            content_length = int(response.headers[CONTENT_LENGTH])
+            if content_length != length:
+                raise ValueError("FIXME")
+                # raise ContentLengthMismatch("{} != {}".format(content_length, length))
+
 
 class SynchronousTicketRequest(protocol.TicketRequest):
 
     def run(self):
-        print("running sync ticket request.")
-
         response = requests.get(self.url)
         response.raise_for_status()
-        return SynchronousSliceRequest(response.json())
-
-
-class SynchronousSliceRequest(protocol.SliceRequest):
-
-    def run(self, output_file):
-        print("running sync slice request")
-        for chunk_request in self.chunk_requests:
-            print(chunk_request.parsed_url)
+        return protocol.SliceRequest(response.json(), SynchronousHttpChunkRequest)

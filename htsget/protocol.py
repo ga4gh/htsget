@@ -19,6 +19,8 @@ Sans IO protocol handling code to the GA4GH streaming API.
 from __future__ import division
 from __future__ import print_function
 
+import base64
+
 from six.moves.urllib.parse import urlencode
 from six.moves.urllib.parse import urlunparse
 from six.moves.urllib.parse import urlparse
@@ -65,6 +67,13 @@ class ChunkRequest(object):
     """
     def __init__(self, parsed_url):
         self.parsed_url = parsed_url
+        self.url = urlunparse(parsed_url)
+
+    def __repr__(self):
+        return "<{}(url='{}')>".format(type(self).__name__, self.url)
+
+    def run(self, output_file):
+        raise NotImplementedError()
 
 
 class HttpChunkRequest(ChunkRequest):
@@ -75,6 +84,10 @@ class HttpChunkRequest(ChunkRequest):
         super(HttpChunkRequest, self).__init__(parsed_url)
         self.headers = headers
 
+    def __repr__(self):
+        return "<{}(url='{}', headers='{}')>".format(
+            type(self).__name__, self.url, self.headers)
+
 
 class DataUriChunkRequest(ChunkRequest):
     """
@@ -82,6 +95,12 @@ class DataUriChunkRequest(ChunkRequest):
     """
     def __init__(self, parsed_url):
         super(DataUriChunkRequest, self).__init__(parsed_url)
+        # TODO parse out the encoding properly.
+        split = parsed_url.path.split(",", 1)
+        self.data = base64.b64decode(split[1])
+
+    def run(self, output_file):
+        output_file.write(self.data)
 
 
 class SliceRequest(object):
@@ -91,7 +110,7 @@ class SliceRequest(object):
     of one of more chunks which must be concatenated together to obtain
     the resulting data.
     """
-    def __init__(self, ticket):
+    def __init__(self, ticket, http_chunk_request_class):
         self.format = ticket.get("format", "BAM")
         self.md5 = ticket.get("md5", None)
         self.chunk_requests = []
@@ -99,8 +118,16 @@ class SliceRequest(object):
             url = urlparse(url_object["url"])
             if url.scheme.startswith("http"):
                 headers = url_object.get("headers", "")
-                self.chunk_requests.append(HttpChunkRequest(url, headers))
+                self.chunk_requests.append(http_chunk_request_class(url, headers))
             elif url.scheme == "data":
                 self.chunk_requests.append(DataUriChunkRequest(url))
             else:
                 raise ValueError("Unsupported URL scheme:{}".format(url.scheme))
+
+    def run(self, output_file):
+        for chunk_request in self.chunk_requests:
+            chunk_request.run(output_file)
+
+    def __repr__(self):
+        return "<{}(format='{}', md5={}, chunk_requests={}>".format(
+            type(self).__name__, self.format, self.md5, self.chunk_requests)

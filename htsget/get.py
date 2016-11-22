@@ -19,7 +19,6 @@ Main interface for the htsget library.
 from __future__ import division
 from __future__ import print_function
 
-import sys
 
 import htsget.sync as sync
 
@@ -36,4 +35,3 @@ def get(
         start=start, end=end, fields=fields, tags=tags, notags=notags)
     slice_request = ticket_request.run()
     slice_request.run(file)
-
