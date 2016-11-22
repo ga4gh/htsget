@@ -30,7 +30,6 @@ import htsget
 
 
 def run(args):
-    pass
     # log_level = logging.WARNING
     # if args.verbose > 0:
     #     log_level = logging.INFO
@@ -47,6 +46,9 @@ def run(args):
     # client.download()
     # client.close()
 
+    with open(args.output, 'w') as f:
+        htsget.get(args.url, f)
+
 
 def get_htsget_parser():
     parser = argparse.ArgumentParser(
@@ -57,9 +59,7 @@ def get_htsget_parser():
     parser.add_argument('--verbose', '-v', action='count', default=0)
 
     parser.add_argument(
-        "url", type=str, help="The URL prefix of the server")
-    parser.add_argument(
-        "id", type=str, help="The ID of the ReadGroupSet")
+        "url", type=str, help="The URL of the object to retrieve")
     parser.add_argument(
         "--format", "-F", type=str, default=None,
         help="The format of data to request.")

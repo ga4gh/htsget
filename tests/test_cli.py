@@ -33,9 +33,8 @@ class TestHtsgetArgumentParser(unittest.TestCase):
         return parser.parse_args(args)
 
     def test_defaults(self):
-        args = self.parse_args(["URL", "ID"])
+        args = self.parse_args(["URL"])
         self.assertEqual(args.url, "URL")
-        self.assertEqual(args.id, "ID")
         self.assertEqual(args.format, None)
         self.assertEqual(args.reference_name, None)
         self.assertEqual(args.start, None)

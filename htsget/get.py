@@ -13,14 +13,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""
+Main interface for the htsget library.
+"""
 from __future__ import division
 from __future__ import print_function
 
-__version__ = "undefined"
-try:
-    from . import _version
-    __version__ = _version.version
-except ImportError:
-    pass
+import sys
 
-from .get import get  # NOQA
+import htsget.sync as sync
+
+
+def get(
+        url, file, fmt=None, reference_name=None, reference_md5=None,
+        start=None, end=None, fields=None, tags=None, notags=None):
+    """
+    Runs a request to the specified URL and write the resulting data to
+    the specified file-like object.
+    """
+    ticket_request = sync.SynchronousTicketRequest(
+        url, fmt=fmt, reference_name=reference_name, reference_md5=reference_md5,
+        start=start, end=end, fields=fields, tags=tags, notags=notags)
+    slice_request = ticket_request.run()
+    slice_request.run(file)
+
