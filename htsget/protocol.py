@@ -110,7 +110,7 @@ class SliceRequest(object):
     of one of more chunks which must be concatenated together to obtain
     the resulting data.
     """
-    def __init__(self, ticket, http_chunk_request_class):
+    def __init__(self, ticket, http_chunk_request_class=HttpChunkRequest):
         self.format = ticket.get("format", "BAM")
         self.md5 = ticket.get("md5", None)
         self.chunk_requests = []

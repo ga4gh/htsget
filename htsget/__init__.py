@@ -23,4 +23,4 @@ try:
 except ImportError:
     pass
 
-from .get import get  # NOQA
+from .io import get  # NOQA
