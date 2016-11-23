@@ -23,17 +23,19 @@ from __future__ import print_function
 
 import argparse
 import os
-# import logging
+import logging
 import signal
 
 import htsget
 
 
 def run(args):
-    # log_level = logging.WARNING
-    # if args.verbose > 0:
-    #     log_level = logging.INFO
-    # logging.basicConfig(format='%(asctime)s %(message)s', level=log_level)
+    log_level = logging.WARNING
+    if args.verbose == 1:
+        log_level = logging.INFO
+    elif args.verbose >= 2:
+        log_level = logging.DEBUG
+    logging.basicConfig(format='%(asctime)s %(message)s', level=log_level)
 
     with open(args.output, 'w') as f:
         htsget.get(

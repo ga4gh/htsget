@@ -19,8 +19,10 @@ Main interface for the htsget library.
 from __future__ import division
 from __future__ import print_function
 
+import logging
 
 import htsget.protocol as protocol
+import htsget.exceptions as exceptions
 
 import requests
 
@@ -29,40 +31,42 @@ CONTENT_LENGTH = "Content-Length"
 
 def get(
         url, file, fmt=None, reference_name=None, reference_md5=None,
-        start=None, end=None, fields=None, tags=None, notags=None):
+        start=None, end=None, fields=None, tags=None, notags=None,
+        max_retries=5, timeout=5):
     """
     Runs a request to the specified URL and write the resulting data to
     the specified file-like object.
     """
-    ticket_request = SynchronousTicketRequest(
-        url, fmt=fmt, reference_name=reference_name, reference_md5=reference_md5,
-        start=start, end=end, fields=fields, tags=tags, notags=notags)
-    slice_request = ticket_request.run()
-    slice_request.run(file)
+    manager = SynchronousDownloadManager(
+        url, file, fmt=fmt, reference_name=reference_name, reference_md5=reference_md5,
+        start=start, end=end, fields=fields, tags=tags, notags=notags,
+        max_retries=max_retries, timeout=timeout)
+    manager.run()
 
 
-class SynchronousHttpChunkRequest(protocol.HttpChunkRequest):
+class SynchronousDownloadManager(protocol.DownloadManager):
+    """
+    Class implementing the GA4GH streaming API synchronously using the
+    requests library.
+    """
+    def _handle_ticket_request(self):
+        logging.debug("handle_ticket_request(url={})".format(self.ticket_request_url))
+        response = requests.get(self.ticket_request_url)
+        response.raise_for_status()
+        self.ticket = response.json()
 
-    def run(self, output_file):
-        response = requests.get(
-            self.url, headers=self.headers, stream=True, timeout=5)
+    def _handle_http_url(self, url, headers):
+        logging.debug("handle_http_url(url={}, headers={})".format(url, headers))
+        response = requests.get(url, headers=headers, stream=True, timeout=self.timeout)
+        # TODO make a function to categorise errors and reraise them if necessary.
         response.raise_for_status()
         length = 0
-        # We download this chunk in small pieces.
-        piece_size = 8192
+        piece_size = 65536
         for piece in response.iter_content(piece_size):
             length += len(piece)
-            output_file.write(piece)
+            self.output_file.write(piece)
         if CONTENT_LENGTH in response.headers:
             content_length = int(response.headers[CONTENT_LENGTH])
             if content_length != length:
-                raise ValueError("FIXME")
-                # raise ContentLengthMismatch("{} != {}".format(content_length, length))
-
-
-class SynchronousTicketRequest(protocol.TicketRequest):
-
-    def run(self):
-        response = requests.get(self.url)
-        response.raise_for_status()
-        return protocol.SliceRequest(response.json(), SynchronousHttpChunkRequest)
+                raise exceptions.ContentLengthMismatch(
+                    "Length mismatch {} != {}".format(content_length, length))
