@@ -49,17 +49,29 @@ class SynchronousDownloadManager(protocol.DownloadManager):
     Class implementing the GA4GH streaming API synchronously using the
     requests library.
     """
+    def __get(self, *args, **kwargs):
+        try:
+            response = requests.get(*args, **kwargs)
+        except requests.RequestException as re:
+            raise exceptions.RetryableError(str(re))
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as he:
+            # TODO classify other errors that we consider unrecoverable.
+            if response.status_code == 404:
+                raise he
+            else:
+                raise exceptions.RetryableError(str(he))
+        return response
+
     def _handle_ticket_request(self):
         logging.debug("handle_ticket_request(url={})".format(self.ticket_request_url))
-        response = requests.get(self.ticket_request_url)
-        response.raise_for_status()
+        response = self.__get(self.ticket_request_url, timeout=self.timeout)
         self.ticket = response.json()
 
     def _handle_http_url(self, url, headers):
         logging.debug("handle_http_url(url={}, headers={})".format(url, headers))
-        response = requests.get(url, headers=headers, stream=True, timeout=self.timeout)
-        # TODO make a function to categorise errors and reraise them if necessary.
-        response.raise_for_status()
+        response = self.__get(url, headers=headers, stream=True, timeout=self.timeout)
         length = 0
         piece_size = 65536
         for piece in response.iter_content(piece_size):
