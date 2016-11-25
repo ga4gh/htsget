@@ -32,7 +32,7 @@ CONTENT_LENGTH = "Content-Length"
 def get(
         url, file, fmt=None, reference_name=None, reference_md5=None,
         start=None, end=None, fields=None, tags=None, notags=None,
-        max_retries=5, timeout=5):
+        max_retries=5, timeout=10, retry_wait=5):
     """
     Runs a request to the specified URL and write the resulting data to
     the specified file-like object.
@@ -40,7 +40,7 @@ def get(
     manager = SynchronousDownloadManager(
         url, file, fmt=fmt, reference_name=reference_name, reference_md5=reference_md5,
         start=start, end=end, fields=fields, tags=tags, notags=notags,
-        max_retries=max_retries, timeout=timeout)
+        max_retries=max_retries, timeout=timeout, retry_wait=retry_wait)
     manager.run()
 
 
@@ -74,9 +74,12 @@ class SynchronousDownloadManager(protocol.DownloadManager):
         response = self.__get(url, headers=headers, stream=True, timeout=self.timeout)
         length = 0
         piece_size = 65536
-        for piece in response.iter_content(piece_size):
-            length += len(piece)
-            self.output_file.write(piece)
+        try:
+            for piece in response.iter_content(piece_size):
+                length += len(piece)
+                self.output_file.write(piece)
+        except requests.RequestException as re:
+            raise exceptions.RetryableError(str(re))
         if CONTENT_LENGTH in response.headers:
             content_length = int(response.headers[CONTENT_LENGTH])
             if content_length != length:

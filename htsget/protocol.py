@@ -66,9 +66,10 @@ class DownloadManager(object):
     def __init__(
             self, url, output_file, fmt=None, reference_name=None, reference_md5=None,
             start=None, end=None, fields=None, tags=None, notags=None,
-            max_retries=5, timeout=5):
+            max_retries=5, timeout=10, retry_wait=5):
         self.max_retries = max_retries
         self.timeout = timeout
+        self.retry_wait = retry_wait
         self.output_file = output_file
         self.ticket_request_url = ticket_request_url(
             url, fmt=fmt, reference_name=reference_name, reference_md5=reference_md5,
@@ -88,7 +89,7 @@ class DownloadManager(object):
             except exceptions.RetryableError as re:
                 if num_retries < self.max_retries:
                     num_retries += 1
-                    sleep_time = self.timeout  # TODO exponential backoff
+                    sleep_time = self.retry_wait  # TODO exponential backoff
                     logging.warning(
                         "Error: '{}' occured; sleeping {}s before retrying "
                         "(attempt={})".format(re, sleep_time, num_retries))
