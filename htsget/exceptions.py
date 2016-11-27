@@ -14,13 +14,20 @@
 # limitations under the License.
 #
 """
-Development stub for the htsget CLI.
+Exceptions for htsget.
 """
 from __future__ import division
 from __future__ import print_function
 
-import htsget.cli
+
+class RetryableError(Exception):
+    """
+    The superclass of all errors that we think are worth retrying.
+    """
 
 
-if __name__ == "__main__":
-    htsget.cli.htsget_main()
+class ContentLengthMismatch(RetryableError):
+    """
+    The length of the downloaded content is not the same as the
+    length reported in the header.
+    """

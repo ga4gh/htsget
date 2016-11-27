@@ -1,32 +1,53 @@
+#
+# Copyright 2016 University of Oxford
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+"""
+The command line interface for htsget.
+"""
+
 from __future__ import division
 from __future__ import print_function
 
 
 import argparse
+import logging
 import os
-# import logging
 import signal
+import sys
 
 import htsget
 
 
 def run(args):
-    pass
-    # log_level = logging.WARNING
-    # if args.verbose > 0:
-    #     log_level = logging.INFO
-    # logging.basicConfig(format='%(asctime)s %(message)s', level=log_level)
+    log_level = logging.WARNING
+    if args.verbose == 1:
+        log_level = logging.INFO
+    elif args.verbose >= 2:
+        log_level = logging.DEBUG
+    logging.basicConfig(format='%(asctime)s %(message)s', level=log_level)
 
-    # client = gaclient.Client(
-    #     base_url=args.url,
-    #     id_=args.id,
-    #     reference_name=args.reference_name,
-    #     start=args.start,
-    #     end=args.end,
-    #     output_file=args.output)
-
-    # client.download()
-    # client.close()
+    output = sys.stdout
+    if args.output is not None:
+        output = open(args.output, "wb")
+    try:
+        htsget.get(
+            args.url, output, reference_name=args.reference_name, start=args.start,
+            end=args.end)
+    finally:
+        if output is not sys.stdout:
+            output.close()
 
 
 def get_htsget_parser():
@@ -38,9 +59,7 @@ def get_htsget_parser():
     parser.add_argument('--verbose', '-v', action='count', default=0)
 
     parser.add_argument(
-        "url", type=str, help="The URL prefix of the server")
-    parser.add_argument(
-        "id", type=str, help="The ID of the ReadGroupSet")
+        "url", type=str, help="The URL of the object to retrieve")
     parser.add_argument(
         "--format", "-F", type=str, default=None,
         help="The format of data to request.")
