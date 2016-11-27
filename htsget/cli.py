@@ -22,9 +22,10 @@ from __future__ import print_function
 
 
 import argparse
-import os
 import logging
+import os
 import signal
+import sys
 
 import htsget
 
@@ -37,10 +38,16 @@ def run(args):
         log_level = logging.DEBUG
     logging.basicConfig(format='%(asctime)s %(message)s', level=log_level)
 
-    with open(args.output, 'w') as f:
+    output = sys.stdout
+    if args.output is not None:
+        output = open(args.output)
+    try:
         htsget.get(
-            args.url, f, reference_name=args.reference_name, start=args.start,
+            args.url, output, reference_name=args.reference_name, start=args.start,
             end=args.end)
+    finally:
+        if output is not sys.stdout:
+            output.close()
 
 
 def get_htsget_parser():

@@ -64,13 +64,13 @@ class DownloadManager(object):
     Abstract implementation of the protocol.
     """
     def __init__(
-            self, url, output_file, fmt=None, reference_name=None, reference_md5=None,
+            self, url, output, fmt=None, reference_name=None, reference_md5=None,
             start=None, end=None, fields=None, tags=None, notags=None,
             max_retries=5, timeout=10, retry_wait=5):
         self.max_retries = max_retries
         self.timeout = timeout
         self.retry_wait = retry_wait
-        self.output_file = output_file
+        self.output = output
         self.ticket_request_url = ticket_request_url(
             url, fmt=fmt, reference_name=reference_name, reference_md5=reference_md5,
             start=start, end=end, fields=fields, tags=tags, notags=notags)
@@ -81,7 +81,7 @@ class DownloadManager(object):
     def __retry(self, method, *args):
         completed = False
         num_retries = 0
-        position_before = self.output_file.tell()
+        position_before = self.output.tell()
         while not completed:
             try:
                 method(*args)
@@ -93,7 +93,7 @@ class DownloadManager(object):
                     logging.warning(
                         "Error: '{}' occured; sleeping {}s before retrying "
                         "(attempt={})".format(re, sleep_time, num_retries))
-                    self.output_file.seek(position_before)
+                    self.output.seek(position_before)
                     time.sleep(sleep_time)
                 else:
                     raise re
@@ -107,7 +107,7 @@ class DownloadManager(object):
         description = split[0]
         data = base64.b64decode(split[1])
         logging.debug("handle_data_uri({}, length={})".format(description, len(data)))
-        self.output_file.write(data)
+        self.output.write(data)
 
     def _handle_http_url(url, headers):
         raise NotImplementedError()

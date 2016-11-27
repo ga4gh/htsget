@@ -127,8 +127,8 @@ class StoringUrlsDownloadManager(protocol.DownloadManager):
     """
     Simple implementation of the DownloadManager that just saves the URLs.
     """
-    def __init__(self, test_ticket, output_file):
-        super(StoringUrlsDownloadManager, self).__init__(EXAMPLE_URL, output_file)
+    def __init__(self, test_ticket, output):
+        super(StoringUrlsDownloadManager, self).__init__(EXAMPLE_URL, output)
         self.test_ticket = test_ticket
         self.stored_urls = []
 
@@ -174,9 +174,9 @@ class TestTicketResponses(unittest.TestCase):
 
 class RetryCountDownloadManager(protocol.DownloadManager):
 
-    def __init__(self, test_ticket, output_file, **kwargs):
+    def __init__(self, test_ticket, output, **kwargs):
         super(RetryCountDownloadManager, self).__init__(
-            EXAMPLE_URL, output_file, **kwargs)
+            EXAMPLE_URL, output, **kwargs)
         self.test_ticket = test_ticket
         self.attempt_counts = collections.Counter()
 
@@ -190,9 +190,9 @@ class RetryCountDownloadManager(protocol.DownloadManager):
 
 class FailingChunkDownloadManager(protocol.DownloadManager):
 
-    def __init__(self, test_ticket, output_file, data_map, **kwargs):
+    def __init__(self, test_ticket, output, data_map, **kwargs):
         super(FailingChunkDownloadManager, self).__init__(
-            EXAMPLE_URL, output_file, **kwargs)
+            EXAMPLE_URL, output, **kwargs)
         self.test_ticket = test_ticket
         self.attempt_counts = collections.Counter()
         self.data_map = data_map
@@ -203,10 +203,10 @@ class FailingChunkDownloadManager(protocol.DownloadManager):
     def _handle_http_url(self, url, headers):
         self.attempt_counts[url] += 1
         if self.attempt_counts[url] == 1:
-            self.output_file.write("gibberish" * 100)
+            self.output.write("gibberish" * 100)
             raise exceptions.RetryableError()
         else:
-            self.output_file.write(self.data_map[url])
+            self.output.write(self.data_map[url])
 
 
 class TestRetries(unittest.TestCase):
