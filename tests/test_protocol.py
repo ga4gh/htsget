@@ -19,6 +19,7 @@ Test cases for the protocol handling code.
 from __future__ import print_function
 from __future__ import division
 
+import base64
 import collections
 import tempfile
 import unittest
@@ -123,17 +124,25 @@ def get_ticket(urls=[], format_=None, md5=None):
     return d
 
 
-class StoringUrlsDownloadManager(protocol.DownloadManager):
+class TestDownloadManager(protocol.DownloadManager):
+    """
+    Test download manager that stores a ticket.
+    """
+    def __init__(self, test_ticket, output, **kwargs):
+        super(TestDownloadManager, self).__init__(EXAMPLE_URL, output, **kwargs)
+        self.test_ticket = test_ticket
+
+    def _handle_ticket_request(self):
+        self.ticket = self.test_ticket
+
+
+class StoringUrlsDownloadManager(TestDownloadManager):
     """
     Simple implementation of the DownloadManager that just saves the URLs.
     """
     def __init__(self, test_ticket, output):
-        super(StoringUrlsDownloadManager, self).__init__(EXAMPLE_URL, output)
-        self.test_ticket = test_ticket
+        super(StoringUrlsDownloadManager, self).__init__(test_ticket, output)
         self.stored_urls = []
-
-    def _handle_ticket_request(self):
-        self.ticket = self.test_ticket
 
     def _handle_data_uri(self, parsed_url):
         self.stored_urls.append(parsed_url)
@@ -172,33 +181,42 @@ class TestTicketResponses(unittest.TestCase):
         self.assertEqual(dm.stored_urls[0], urlparse(data_uri))
 
 
-class RetryCountDownloadManager(protocol.DownloadManager):
+class TestDataUriParsing(unittest.TestCase):
+    """
+    Tests for the data URI scheme
+    """
+    def test_basic_parsing(self):
+        data_uri = "data:application/vnd.ga4gh.bam;base64,SGVsbG8sIFdvcmxkIQ=="
+        ticket = get_ticket(urls=[get_data_uri_ticket(data_uri)])
+        with tempfile.TemporaryFile("wb+") as temp_file:
+            dm = TestDownloadManager(ticket, temp_file)
+            dm.run()
+            temp_file.seek(0)
+            data = temp_file.read()
+            other_data = base64.b64decode("SGVsbG8sIFdvcmxkIQ==")
+            self.assertEqual(data, other_data)
+
+    # TODO much more tests here with input data. Also need to test the various
+    # chunks of the parser.
+
+
+class RetryCountDownloadManager(TestDownloadManager):
 
     def __init__(self, test_ticket, output, **kwargs):
-        super(RetryCountDownloadManager, self).__init__(
-            EXAMPLE_URL, output, **kwargs)
-        self.test_ticket = test_ticket
+        super(RetryCountDownloadManager, self).__init__(test_ticket, output, **kwargs)
         self.attempt_counts = collections.Counter()
-
-    def _handle_ticket_request(self):
-        self.ticket = self.test_ticket
 
     def _handle_http_url(self, url, headers):
         self.attempt_counts[url] += 1
         raise exceptions.RetryableError()
 
 
-class FailingChunkDownloadManager(protocol.DownloadManager):
+class FailingChunkDownloadManager(TestDownloadManager):
 
     def __init__(self, test_ticket, output, data_map, **kwargs):
-        super(FailingChunkDownloadManager, self).__init__(
-            EXAMPLE_URL, output, **kwargs)
-        self.test_ticket = test_ticket
+        super(FailingChunkDownloadManager, self).__init__(test_ticket, output, **kwargs)
         self.attempt_counts = collections.Counter()
         self.data_map = data_map
-
-    def _handle_ticket_request(self):
-        self.ticket = self.test_ticket
 
     def _handle_http_url(self, url, headers):
         self.attempt_counts[url] += 1

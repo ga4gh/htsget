@@ -40,7 +40,7 @@ def run(args):
 
     output = sys.stdout
     if args.output is not None:
-        output = open(args.output)
+        output = open(args.output, "wb")
     try:
         htsget.get(
             args.url, output, reference_name=args.reference_name, start=args.start,

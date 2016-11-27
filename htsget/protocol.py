@@ -37,8 +37,6 @@ def ticket_request_url(
     parsed_url = urlparse(url)
     get_vars = parse_qs(parsed_url.query)
     # TODO error checking
-    if fmt is not None:
-        get_vars["format"] = fmt.upper()
     if reference_name is not None:
         get_vars["referenceName"] = reference_name
     if reference_md5 is not None:
@@ -48,6 +46,8 @@ def ticket_request_url(
     if end is not None:
         get_vars["end"] = int(end)
     # TODO test these.
+    # if fmt is not None:
+    #     get_vars["format"] = fmt.upper()
     # if fields is not None:
     #     get_vars["fields"] = ",".join(fields)
     # if tags is not None:

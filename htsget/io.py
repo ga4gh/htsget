@@ -52,6 +52,7 @@ class SynchronousDownloadManager(protocol.DownloadManager):
     def __get(self, *args, **kwargs):
         try:
             response = requests.get(*args, **kwargs)
+            print("response = ", response.json())
         except requests.RequestException as re:
             raise exceptions.RetryableError(str(re))
         try:
