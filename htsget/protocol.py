@@ -94,7 +94,7 @@ class DownloadManager(object):
                         "Error: '{}' occured; sleeping {}s before retrying "
                         "(attempt={})".format(re, sleep_time, num_retries))
                     self.output_file.seek(position_before)
-                    time.sleep(self.timeout)
+                    time.sleep(sleep_time)
                 else:
                     raise re
 
