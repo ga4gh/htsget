@@ -22,6 +22,7 @@ from __future__ import division
 import unittest
 import tempfile
 import logging
+import os
 
 import mock
 
@@ -48,6 +49,13 @@ class TestHtsgetArgumentParser(unittest.TestCase):
 
 class TestHtsgetRun(unittest.TestCase):
 
+    def setUp(self):
+        fd, self.output_filename = tempfile.mkstemp(prefix="htsget_cli_test_")
+        os.close(fd)
+
+    def tearDown(self):
+        os.unlink(self.output_filename)
+
     def run_cmd(self, cmd):
         parser = cli.get_htsget_parser()
         args = parser.parse_args(cmd.split())
@@ -58,88 +66,83 @@ class TestHtsgetRun(unittest.TestCase):
 
     def test_defaults(self):
         url = "http://example.com/stuff"
-        with tempfile.NamedTemporaryFile("w+") as f:
-            args, kwargs = self.run_cmd("{} -O {}".format(url, f.name))
-            self.assertEqual(args[0], url)
-            self.assertEqual(args[1].name, f.name)
-            self.assertEqual(kwargs["start"], None)
-            self.assertEqual(kwargs["end"], None)
-            self.assertEqual(kwargs["reference_name"], None)
+        args, kwargs = self.run_cmd("{} -O {}".format(url, self.output_filename))
+        self.assertEqual(args[0], url)
+        self.assertEqual(args[1].name, self.output_filename)
+        self.assertEqual(kwargs["start"], None)
+        self.assertEqual(kwargs["end"], None)
+        self.assertEqual(kwargs["reference_name"], None)
 
     def test_reference_name(self):
         url = "http://example.com/otherstuff"
-        with tempfile.NamedTemporaryFile("w+") as f:
-            for reference_name in ["chr1", "1", "x" * 100]:
-                args, kwargs = self.run_cmd("{} -O {} -r {}".format(
-                    url, f.name, reference_name))
-                self.assertEqual(args[0], url)
-                self.assertEqual(args[1].name, f.name)
-                self.assertEqual(kwargs["start"], None)
-                self.assertEqual(kwargs["end"], None)
-                self.assertEqual(kwargs["reference_name"], reference_name)
+        for reference_name in ["chr1", "1", "x" * 100]:
+            args, kwargs = self.run_cmd("{} -O {} -r {}".format(
+                url, self.output_filename, reference_name))
+            self.assertEqual(args[0], url)
+            self.assertEqual(args[1].name, self.output_filename)
+            self.assertEqual(kwargs["start"], None)
+            self.assertEqual(kwargs["end"], None)
+            self.assertEqual(kwargs["reference_name"], reference_name)
 
-                args, kwargs = self.run_cmd("{} -O {} --reference-name {}".format(
-                    url, f.name, reference_name))
-                self.assertEqual(args[0], url)
-                self.assertEqual(args[1].name, f.name)
-                self.assertEqual(kwargs["start"], None)
-                self.assertEqual(kwargs["end"], None)
-                self.assertEqual(kwargs["reference_name"], reference_name)
+            args, kwargs = self.run_cmd("{} -O {} --reference-name {}".format(
+                url, self.output_filename, reference_name))
+            self.assertEqual(args[0], url)
+            self.assertEqual(args[1].name, self.output_filename)
+            self.assertEqual(kwargs["start"], None)
+            self.assertEqual(kwargs["end"], None)
+            self.assertEqual(kwargs["reference_name"], reference_name)
 
     def test_start(self):
         url = "http://example.com/otherstuff"
         reference_name = "chr2"
-        with tempfile.NamedTemporaryFile("w+") as f:
-            for start in [0, 100, 2**32]:
-                args, kwargs = self.run_cmd("{} -O {} -r {} -s {}".format(
-                    url, f.name, reference_name, start))
-                self.assertEqual(args[0], url)
-                self.assertEqual(args[1].name, f.name)
-                self.assertEqual(kwargs["start"], start)
-                self.assertEqual(kwargs["end"], None)
-                self.assertEqual(kwargs["reference_name"], reference_name)
+        for start in [0, 100, 2**32]:
+            args, kwargs = self.run_cmd("{} -O {} -r {} -s {}".format(
+                url, self.output_filename, reference_name, start))
+            self.assertEqual(args[0], url)
+            self.assertEqual(args[1].name, self.output_filename)
+            self.assertEqual(kwargs["start"], start)
+            self.assertEqual(kwargs["end"], None)
+            self.assertEqual(kwargs["reference_name"], reference_name)
 
-                args, kwargs = self.run_cmd("{} -O {} -r {} --start {}".format(
-                    url, f.name, reference_name, start))
-                self.assertEqual(args[0], url)
-                self.assertEqual(args[1].name, f.name)
-                self.assertEqual(kwargs["start"], start)
-                self.assertEqual(kwargs["end"], None)
-                self.assertEqual(kwargs["reference_name"], reference_name)
+            args, kwargs = self.run_cmd("{} -O {} -r {} --start {}".format(
+                url, self.output_filename, reference_name, start))
+            self.assertEqual(args[0], url)
+            self.assertEqual(args[1].name, self.output_filename)
+            self.assertEqual(kwargs["start"], start)
+            self.assertEqual(kwargs["end"], None)
+            self.assertEqual(kwargs["reference_name"], reference_name)
 
     def test_end(self):
         url = "http://example.com/otherstuff"
         reference_name = "chr2"
-        with tempfile.NamedTemporaryFile("w+") as f:
-            for end in [0, 100, 2**32]:
-                args, kwargs = self.run_cmd("{} -O {} -r {} -e {}".format(
-                    url, f.name, reference_name, end))
-                self.assertEqual(args[0], url)
-                self.assertEqual(args[1].name, f.name)
-                self.assertEqual(kwargs["start"], None)
-                self.assertEqual(kwargs["end"], end)
-                self.assertEqual(kwargs["reference_name"], reference_name)
+        for end in [0, 100, 2**32]:
+            args, kwargs = self.run_cmd("{} -O {} -r {} -e {}".format(
+                url, self.output_filename, reference_name, end))
+            self.assertEqual(args[0], url)
+            self.assertEqual(args[1].name, self.output_filename)
+            self.assertEqual(kwargs["start"], None)
+            self.assertEqual(kwargs["end"], end)
+            self.assertEqual(kwargs["reference_name"], reference_name)
 
-                args, kwargs = self.run_cmd("{} -O {} -r {} --end {}".format(
-                    url, f.name, reference_name, end))
-                self.assertEqual(args[0], url)
-                self.assertEqual(args[1].name, f.name)
-                self.assertEqual(kwargs["start"], None)
-                self.assertEqual(kwargs["end"], end)
-                self.assertEqual(kwargs["reference_name"], reference_name)
+            args, kwargs = self.run_cmd("{} -O {} -r {} --end {}".format(
+                url, self.output_filename, reference_name, end))
+            self.assertEqual(args[0], url)
+            self.assertEqual(args[1].name, self.output_filename)
+            self.assertEqual(kwargs["start"], None)
+            self.assertEqual(kwargs["end"], end)
+            self.assertEqual(kwargs["reference_name"], reference_name)
 
     def test_start_end(self):
         url = "http://example.com/otherstuff"
         reference_name = "chr2"
-        with tempfile.NamedTemporaryFile("w+") as f:
-            for start, end in [(0, 1), (100, 200), (5, 2**32)]:
-                args, kwargs = self.run_cmd("{} -O {} -r {} -s {} -e {}".format(
-                    url, f.name, reference_name, start, end))
-                self.assertEqual(args[0], url)
-                self.assertEqual(args[1].name, f.name)
-                self.assertEqual(kwargs["start"], start)
-                self.assertEqual(kwargs["end"], end)
-                self.assertEqual(kwargs["reference_name"], reference_name)
+        for start, end in [(0, 1), (100, 200), (5, 2**32)]:
+            args, kwargs = self.run_cmd("{} -O {} -r {} -s {} -e {}".format(
+                url, self.output_filename, reference_name, start, end))
+            self.assertEqual(args[0], url)
+            self.assertEqual(args[1].name, self.output_filename)
+            self.assertEqual(kwargs["start"], start)
+            self.assertEqual(kwargs["end"], end)
+            self.assertEqual(kwargs["reference_name"], reference_name)
 
 
 class TestVerbosity(unittest.TestCase):
