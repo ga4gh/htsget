@@ -24,7 +24,6 @@ import unittest
 
 import mock
 
-
 import htsget
 
 
