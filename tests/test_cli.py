@@ -29,6 +29,17 @@ import mock
 import htsget.cli as cli
 
 
+class TestMain(unittest.TestCase):
+    """
+    Simple tests for the main function.
+    """
+    with mock.patch("htsget.cli.run") as mocked_run, \
+            mock.patch("argparse.ArgumentParser.parse_args") as mocked_parse:
+        cli.htsget_main()
+        mocked_parse.assert_called_once()
+        mocked_run.assert_called_once()
+
+
 class TestHtsgetArgumentParser(unittest.TestCase):
     """
     Tests the parser to ensure it parses input values correctly.
