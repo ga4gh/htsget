@@ -58,3 +58,5 @@ arguments provided in the protocol. For example, we might have::
             "http://htsnexus.rnd.dnanex.us/v1/reads/BroadHiSeqX_b37/NA12878", output,
             reference_name="2", start=1000, end=20000)
 
+ Full API documentation is available on
+`read the docs <https://htsget.readthedocs.io/en/stable/api.html>`_.
