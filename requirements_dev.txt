@@ -5,3 +5,6 @@ nose
 mock
 requests
 six
+sphinx
+sphinx-argparse
+sphinx_rtd_theme

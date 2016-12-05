@@ -57,7 +57,8 @@ def run(args):
             args.max_retries = 0
     try:
         htsget.get(
-            args.url, output, reference_name=args.reference_name, start=args.start,
+            args.url, output, reference_name=args.reference_name,
+            reference_md5=args.reference_md5, start=args.start,
             end=args.end, data_format=args.format, max_retries=args.max_retries,
             retry_wait=args.retry_wait, timeout=args.timeout)
     except exceptions.ExceptionWrapper as ew:
@@ -73,12 +74,16 @@ def run(args):
 
 def get_htsget_parser():
     parser = argparse.ArgumentParser(
-        description="Command line interface for the GA4GH Streaming API.")
+        description=(
+            "Command line interface for the GA4GH Streaming API. Provides "
+            "a simple method to retrieve data spanning genomic ranges from "
+            "servers supporting the protocol."))
     parser.add_argument(
         "-V", "--version", action='version',
         version='%(prog)s {}'.format(htsget.__version__))
-    parser.add_argument('--verbose', '-v', action='count', default=0)
-
+    parser.add_argument(
+        '--verbose', '-v', action='count', default=0,
+        help="Increase verbosity.")
     parser.add_argument(
         "url", type=str, help="The URL of the object to retrieve")
     parser.add_argument(
@@ -86,25 +91,40 @@ def get_htsget_parser():
         help="The format of data to request.")
     parser.add_argument(
         "--reference-name", "-r", type=str, default=None,
-        help="The reference name. If not specified return all reads")
+        help=(
+            "The reference sequence name, for example 'chr1', '1', or 'chrX'. "
+            "If unspecified, all data is returned."))
+    parser.add_argument(
+        "--reference-md5", "-m", type=str, default=None,
+        help=(
+            "The MD5 checksum uniquely representing the requested reference "
+            "sequence as a lower-case hexadecimal string, calculated as the MD5 "
+            "of the upper-case sequence excluding all whitespace characters."))
     parser.add_argument(
         "--start", "-s", type=int, default=None,
-        help="The starting coordinate.")
+        help=(
+            "The start position of the range on the reference, 0-based, inclusive. "
+            "If specified, reference-name or reference-md5 must also be specified."))
     parser.add_argument(
         "--end", "-e", type=int, default=None,
-        help="The end coordinate")
+        help=(
+            "The end position of the range on the reference, 0-based exclusive. If "
+            "specified, reference-name or reference-md5 must also be specified."))
     parser.add_argument(
         "--output", "-O", type=str, default=None,
-        help="The output file path. Defaults to stdout")
+        help=(
+            "The output file path. Defaults to stdout. If output is to stdout, the "
+            "max-retries is set to zero, since retries are not supported when writing "
+            "to this stream"))
     parser.add_argument(
         "--max-retries", "-M", type=int, default=5,
-        help="The maximum number of times to retry a transfer")
+        help="The maximum number of times to retry a failed transfer.")
     parser.add_argument(
         "--retry-wait", "-W", type=float, default=5,
-        help="The number of seconds to wait before retrying a failed transfer")
+        help="The number of seconds to wait before retrying a failed transfer.")
     parser.add_argument(
         "--timeout", "-T", type=float, default=10,
-        help="The socket timeout for transfers")
+        help="The socket timeout for transfers.")
     return parser
 
 
