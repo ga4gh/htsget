@@ -35,6 +35,16 @@ import htsget.exceptions as exceptions
 EXAMPLE_URL = "http://example.com"
 
 
+class TestManagerAbstractMethods(unittest.TestCase):
+    """
+    Tests to make sure the abstract methods are correct interfaces.
+    """
+    def test_not_implemented(self):
+        dm = protocol.DownloadManager(EXAMPLE_URL, None)
+        self.assertRaises(NotImplementedError, dm._ticket_request)
+        self.assertRaises(NotImplementedError, dm._handle_http_url, {})
+
+
 class TestTicketRequestUrls(unittest.TestCase):
     """
     Tests the ticket request generator.

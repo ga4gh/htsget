@@ -32,10 +32,35 @@ CONTENT_LENGTH = "Content-Length"
 def get(
         url, output, reference_name=None, reference_md5=None,
         start=None, end=None, fields=None, tags=None, notags=None,
-        data_format=None, max_retries=5, timeout=10, retry_wait=5):
+        data_format=None, max_retries=5, retry_wait=5, timeout=10):
     """
     Runs a request to the specified URL and write the resulting data to
     the specified file-like object.
+
+    :param str url: The URL of the data to retrieve. This may be composed of a prefix
+        such as ``http://example.com/reads/`` and an ID suffix such as
+        ``NA12878``. The full URL must be supplied here, i.e., in this example
+        ``http://example.com/reads/NA12878``.
+    :param file output: A file-like object to write the downloaded data to. To support
+       retrying of failed transfers, this file must be seekable. For this reason,
+       retry will fail if ``stdout`` is provided.
+    :param str reference_name: The reference sequence name, for example "chr1",
+        "1", or "chrX". If unspecified, all data is returned.
+    :param str reference_md5: The MD5 checksum uniquely representing the reference
+        sequence as a lower-case hexadecimal string, calculated as the MD5 of the
+        upper-case sequence excluding all whitespace characters (this is equivalent to
+        SQ:M5 in SAM).
+    :param int start: The start position of the range on the reference, 0-based,
+        inclusive. If specified, ``reference_name`` or ``reference_md5`` must also
+        be specified.
+    :param int end: The end position of the range on the reference, 0-based exclusive.
+        If specified, ``reference_name`` or ``reference_md5`` must also be specified.
+    :param str data_format: The requested format of the returned data.
+    :param int max_retries: The maximum number of times that an individual transfer
+        will be retried.
+    :param float retry_wait: The amount of time in seconds to wait before retrying
+        a failed transfer.
+    :param float timeout: The socket timeout for I/O operations.
     """
     manager = SynchronousDownloadManager(
         url, output, reference_name=reference_name,

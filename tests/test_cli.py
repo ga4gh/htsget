@@ -55,6 +55,7 @@ class TestHtsgetArgumentParser(unittest.TestCase):
         self.assertEqual(args.url, "URL")
         self.assertEqual(args.format, None)
         self.assertEqual(args.reference_name, None)
+        self.assertEqual(args.reference_md5, None)
         self.assertEqual(args.start, None)
         self.assertEqual(args.end, None)
         self.assertEqual(args.output, None)
@@ -91,6 +92,7 @@ class TestHtsgetRun(unittest.TestCase):
         self.assertEqual(kwargs["start"], None)
         self.assertEqual(kwargs["end"], None)
         self.assertEqual(kwargs["reference_name"], None)
+        self.assertEqual(kwargs["reference_md5"], None)
         self.assertEqual(kwargs["data_format"], None)
 
     def test_defaults_with_file(self):
@@ -101,6 +103,7 @@ class TestHtsgetRun(unittest.TestCase):
         self.assertEqual(kwargs["start"], None)
         self.assertEqual(kwargs["end"], None)
         self.assertEqual(kwargs["reference_name"], None)
+        self.assertEqual(kwargs["reference_md5"], None)
 
     def test_reference_name(self):
         url = "http://example.com/otherstuff"
@@ -112,6 +115,7 @@ class TestHtsgetRun(unittest.TestCase):
             self.assertEqual(kwargs["start"], None)
             self.assertEqual(kwargs["end"], None)
             self.assertEqual(kwargs["reference_name"], reference_name)
+            self.assertEqual(kwargs["reference_md5"], None)
 
             args, kwargs = self.run_cmd("{} -O {} --reference-name {}".format(
                 url, self.output_filename, reference_name))
@@ -120,6 +124,28 @@ class TestHtsgetRun(unittest.TestCase):
             self.assertEqual(kwargs["start"], None)
             self.assertEqual(kwargs["end"], None)
             self.assertEqual(kwargs["reference_name"], reference_name)
+            self.assertEqual(kwargs["reference_md5"], None)
+
+    def test_reference_md5(self):
+        url = "http://example.com/otherstuff"
+        reference_md5 = "d7866be4ab9deb8b26d38a978b0684e3"
+        args, kwargs = self.run_cmd("{} -O {} -m {}".format(
+            url, self.output_filename, reference_md5))
+        self.assertEqual(args[0], url)
+        self.assertEqual(args[1].name, self.output_filename)
+        self.assertEqual(kwargs["start"], None)
+        self.assertEqual(kwargs["end"], None)
+        self.assertEqual(kwargs["reference_name"], None)
+        self.assertEqual(kwargs["reference_md5"], reference_md5)
+
+        args, kwargs = self.run_cmd("{} -O {} --reference-md5 {}".format(
+            url, self.output_filename, reference_md5))
+        self.assertEqual(args[0], url)
+        self.assertEqual(args[1].name, self.output_filename)
+        self.assertEqual(kwargs["start"], None)
+        self.assertEqual(kwargs["end"], None)
+        self.assertEqual(kwargs["reference_name"], None)
+        self.assertEqual(kwargs["reference_md5"], reference_md5)
 
     def test_start(self):
         url = "http://example.com/otherstuff"
