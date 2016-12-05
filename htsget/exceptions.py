@@ -20,9 +20,34 @@ from __future__ import division
 from __future__ import print_function
 
 
-class RetryableError(Exception):
+class HtsgetException(Exception):
+    """
+    Superclass of all exceptions that Htsget raises directly.
+    """
+
+
+class ExceptionWrapper(HtsgetException):
+    """
+    A wrapper for exceptions raised by lower-level libraries. The source
+    exception is stored in the ``source`` instance variable.
+    """
+    def __init__(self, source):
+        self.source = source
+
+    def __str__(self):
+        return str(self.source)
+
+
+class RetryableError(HtsgetException):
     """
     The superclass of all errors that we think are worth retrying.
+    """
+
+
+class RetryableIOError(RetryableError, ExceptionWrapper):
+    """
+    All exceptions thrown by lower level libraries that we consider to be
+    retryable are wrapped by this exception.
     """
 
 

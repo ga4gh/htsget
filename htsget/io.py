@@ -30,17 +30,18 @@ CONTENT_LENGTH = "Content-Length"
 
 
 def get(
-        url, output, fmt=None, reference_name=None, reference_md5=None,
+        url, output, reference_name=None, reference_md5=None,
         start=None, end=None, fields=None, tags=None, notags=None,
-        max_retries=5, timeout=10, retry_wait=5):
+        data_format=None, max_retries=5, timeout=10, retry_wait=5):
     """
     Runs a request to the specified URL and write the resulting data to
     the specified file-like object.
     """
     manager = SynchronousDownloadManager(
-        url, output, fmt=fmt, reference_name=reference_name, reference_md5=reference_md5,
-        start=start, end=end, fields=fields, tags=tags, notags=notags,
-        max_retries=max_retries, timeout=timeout, retry_wait=retry_wait)
+        url, output, reference_name=reference_name,
+        reference_md5=reference_md5, start=start, end=end, fields=fields, tags=tags,
+        notags=notags, data_format=data_format, max_retries=max_retries, timeout=timeout,
+        retry_wait=retry_wait)
     manager.run()
 
 
@@ -53,15 +54,15 @@ class SynchronousDownloadManager(protocol.DownloadManager):
         try:
             response = requests.get(*args, **kwargs)
         except requests.RequestException as re:
-            raise exceptions.RetryableError(str(re))
+            raise exceptions.RetryableIOError(re)
         try:
             response.raise_for_status()
         except requests.HTTPError as he:
             # TODO classify other errors that we consider unrecoverable.
             if response.status_code == 404:
-                raise he
+                raise exceptions.ExceptionWrapper(he)
             else:
-                raise exceptions.RetryableError(str(he))
+                raise exceptions.RetryableIOError(he)
         return response
 
     def _handle_ticket_request(self):
@@ -79,7 +80,7 @@ class SynchronousDownloadManager(protocol.DownloadManager):
                 length += len(piece)
                 self.output.write(piece)
         except requests.RequestException as re:
-            raise exceptions.RetryableError(str(re))
+            raise exceptions.RetryableIOError(re)
         if CONTENT_LENGTH in response.headers:
             content_length = int(response.headers[CONTENT_LENGTH])
             if content_length != length:

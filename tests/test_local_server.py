@@ -20,15 +20,15 @@ from __future__ import print_function
 from __future__ import division
 
 import json
+import os
+import sys
 import tempfile
 import threading
 import unittest
-import os
 
 from six.moves import BaseHTTPServer
 from six.moves import socketserver
 from six.moves.urllib.parse import urljoin
-import requests
 
 import htsget
 import htsget.exceptions as exceptions
@@ -108,8 +108,16 @@ class ServerTest(unittest.TestCase):
     @classmethod
     def setup_class(cls):
         cls.httpd = TestServer(("", PORT), TestRequestHandler)
-        cls.httpd_thread = threading.Thread(target=cls.httpd.serve_forever)
-        cls.httpd_thread.setDaemon(True)
+
+        def target():
+            # Sometimes the server doesn't shutdown cleanly, but we don't
+            # care here.
+            try:
+                cls.httpd.serve_forever()
+            except ValueError:
+                pass
+
+        cls.httpd_thread = threading.Thread(target=target)
         cls.httpd_thread.start()
 
     @classmethod
@@ -167,6 +175,25 @@ class TestDataTransfers(ServerTest):
         finally:
             os.unlink(filename)
 
+    def test_transfer_with_cli_stdout(self):
+        test_instances = [
+            TestUrlInstance(url="/data1", data=b"data1"),
+            TestUrlInstance(url="/data2", data=b"data2")
+        ]
+        self.httpd.test_instances = test_instances
+        saved = sys.stdout
+        sys.stdout = self.output_file
+        try:
+            cmd = [TestRequestHandler.ticket_url]
+            parser = cli.get_htsget_parser()
+            args = parser.parse_args(cmd)
+            cli.run(args)
+            all_data = b"".join(test_instance.data for test_instance in test_instances)
+            self.output_file.seek(0)
+            self.assertEqual(self.output_file.read(), all_data)
+        finally:
+            sys.stdout = saved
+
 
 class TestErrorHandling(ServerTest):
     """
@@ -174,12 +201,12 @@ class TestErrorHandling(ServerTest):
     """
     def test_missing_path(self):
         self.assertRaises(
-            requests.HTTPError, htsget.get, SERVER_URL + "/nopath",
+            exceptions.ExceptionWrapper, htsget.get, SERVER_URL + "/nopath",
             self.output_file, max_retries=0)
 
     def test_bad_port(self):
         self.assertRaises(
-            exceptions.RetryableError, htsget.get, "http://localhost:66123",
+            exceptions.RetryableIOError, htsget.get, "http://localhost:66123",
             self.output_file, max_retries=0)
 
     def test_data_error(self):
@@ -187,7 +214,7 @@ class TestErrorHandling(ServerTest):
             TestUrlInstance(url="/fail1", data=b"", error_code=500)
         ]
         self.assertRaises(
-            exceptions.RetryableError, htsget.get,
+            exceptions.RetryableIOError, htsget.get,
             TestRequestHandler.ticket_url, self.output_file, max_retries=0)
 
     def test_data_truncation(self):
@@ -195,5 +222,5 @@ class TestErrorHandling(ServerTest):
             TestUrlInstance(url="/fail1", data=b"x" * 8192, truncate=True)
         ]
         self.assertRaises(
-            exceptions.RetryableError, htsget.get,
+            exceptions.ContentLengthMismatch, htsget.get,
             TestRequestHandler.ticket_url, self.output_file, max_retries=0)

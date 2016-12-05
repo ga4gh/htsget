@@ -33,7 +33,8 @@ import htsget.exceptions as exceptions
 
 def ticket_request_url(
         url, fmt=None, reference_name=None, reference_md5=None,
-        start=None, end=None, fields=None, tags=None, notags=None):
+        start=None, end=None, fields=None, tags=None, notags=None,
+        data_format=None):
     parsed_url = urlparse(url)
     get_vars = parse_qs(parsed_url.query)
     # TODO error checking
@@ -45,9 +46,8 @@ def ticket_request_url(
         get_vars["start"] = int(start)
     if end is not None:
         get_vars["end"] = int(end)
-    # TODO test these.
-    # if fmt is not None:
-    #     get_vars["format"] = fmt.upper()
+    if data_format is not None:
+        get_vars["format"] = data_format.upper()
     # if fields is not None:
     #     get_vars["fields"] = ",".join(fields)
     # if tags is not None:
@@ -64,18 +64,19 @@ class DownloadManager(object):
     Abstract implementation of the protocol.
     """
     def __init__(
-            self, url, output, fmt=None, reference_name=None, reference_md5=None,
-            start=None, end=None, fields=None, tags=None, notags=None,
-            max_retries=5, timeout=10, retry_wait=5):
+            self, url, output, data_format=None, reference_name=None,
+            reference_md5=None, start=None, end=None, fields=None, tags=None,
+            notags=None, max_retries=5, timeout=10, retry_wait=5):
         self.max_retries = max_retries
         self.timeout = timeout
         self.retry_wait = retry_wait
         self.output = output
         self.ticket_request_url = ticket_request_url(
-            url, fmt=fmt, reference_name=reference_name, reference_md5=reference_md5,
-            start=start, end=end, fields=fields, tags=tags, notags=notags)
+            url, data_format=data_format, reference_name=reference_name,
+            reference_md5=reference_md5, start=start, end=end, fields=fields,
+            tags=tags, notags=notags)
         self.ticket = None
-        self.format = None
+        self.data_format = format
         self.md5 = None
 
     def __retry(self, method, *args):
@@ -114,7 +115,7 @@ class DownloadManager(object):
 
     def run(self):
         self.__retry(self._handle_ticket_request)
-        self.format = self.ticket.get("format", "BAM")
+        self.data_format = self.ticket.get("format", "BAM")
         self.md5 = self.ticket.get("md5", None)
         for url_object in self.ticket["urls"]:
             url = urlparse(url_object["url"])

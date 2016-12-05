@@ -24,3 +24,4 @@ except ImportError:
     pass
 
 from .io import get  # NOQA
+from .exceptions import *  # NOQA
