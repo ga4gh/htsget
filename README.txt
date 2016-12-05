@@ -16,8 +16,8 @@ htsget
 
 ``htsget`` is a pure-Python API and command line interface for the GA4GH Streaming API. It
 provides a simple and reliable way to retrieve high-throughput sequencing data from
-servers supporting the protocol. Full documentation is available on
-`read the docs <https://htsget.readthedocs.io/en/stable/>`_.
+servers supporting the protocol. Full documentation is available at
+https://htsget.readthedocs.io/en/stable/
 
 ************
 Installation
@@ -44,7 +44,7 @@ The ``htsget`` command line downloads data from a URL as follows::
         --reference-name=2 --start=1000 --end=20000 -O NA12878_2.bam
 
 Full documentation on the command line options is available via ``htsget --help`` or
-`online <https://htsget.readthedocs.io/en/stable/cli.html>`_.
+https://htsget.readthedocs.io/en/stable/cli.html
 
 *********
 API Usage
@@ -61,4 +61,4 @@ arguments provided in the protocol. For example, we might have::
             reference_name="2", start=1000, end=20000)
 
  Full API documentation is available on
-`read the docs <https://htsget.readthedocs.io/en/stable/api.html>`_.
+https://htsget.readthedocs.io/en/stable/api.html
