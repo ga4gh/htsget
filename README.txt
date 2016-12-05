@@ -1,3 +1,6 @@
+======
+htsget
+======
 
 .. image:: https://img.shields.io/travis/jeromekelleher/htsget/master.svg
     :target: https://travis-ci.org/jeromekelleher/htsget
