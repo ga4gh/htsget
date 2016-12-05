@@ -36,10 +36,25 @@ like ``$HOME/.local/bin``) is in your PATH.
 CLI Usage
 *********
 
-The ``htsget`` command line downloads data from a URL as follows:
+The ``htsget`` command line downloads data from a URL as follows::
 
-    $ htsget http://htsnexus.rnd.dnanex.us/v1/reads/BroadHiSeqX_b37/NA12878 --reference-name=MT -O NA12878_MT.bam
+    $ htsget http://htsnexus.rnd.dnanex.us/v1/reads/BroadHiSeqX_b37/NA12878 \
+        --reference-name=2 --start=1000 --end=20000 -O NA12878_2.bam
 
 Full documentation on the command line options is available via ``htsget --help`` or
 `online <https://htsget.readthedocs.io/en/stable/cli.html>`_.
+
+*********
+API Usage
+*********
+
+The Python API provides a single function ``get``, which supports all of the
+arguments provided in the protocol. For example, we might have::
+
+    import htsget
+
+    with open("NA12878_2.bam", "wb") as output:
+        htsget.get(
+            "http://htsnexus.rnd.dnanex.us/v1/reads/BroadHiSeqX_b37/NA12878", output,
+            reference_name="2", start=1000, end=20000)
 
