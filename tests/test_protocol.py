@@ -45,8 +45,8 @@ class TestTicketRequestUrls(unittest.TestCase):
 
     def test_reference_name(self):
         full_url = protocol.ticket_request_url(
-                "http://example.co.uk/path/to/resource", reference_name="1",
-                start=2, end=100)
+            "http://example.co.uk/path/to/resource", reference_name="1",
+            start=2, end=100)
         parsed = urlparse(full_url)
         self.assertEqual(parsed.scheme, "http")
         self.assertEqual(parsed.netloc, "example.co.uk")
@@ -60,7 +60,7 @@ class TestTicketRequestUrls(unittest.TestCase):
     def test_reference_md5(self):
         md5 = "b9185d4fade27aa27e17f25fafec695f"
         full_url = protocol.ticket_request_url(
-                "https://example.com/resource", reference_md5=md5)
+            "https://example.com/resource", reference_md5=md5)
         parsed = urlparse(full_url)
         self.assertEqual(parsed.scheme, "https")
         self.assertEqual(parsed.netloc, "example.com")
@@ -68,6 +68,17 @@ class TestTicketRequestUrls(unittest.TestCase):
         query = parse_qs(parsed.query)
         self.assertEqual(query["referenceMd5"], [md5])
         self.assertEqual(len(query), 1)
+
+    def test_format(self):
+        for data_format in ["cram", "CRAM", "BAM"]:
+            full_url = protocol.ticket_request_url(
+                "http://example.co.uk/path/to/resource", data_format=data_format)
+            parsed = urlparse(full_url)
+            self.assertEqual(parsed.scheme, "http")
+            self.assertEqual(parsed.netloc, "example.co.uk")
+            self.assertEqual(parsed.path, "/path/to/resource")
+            query = parse_qs(parsed.query)
+            self.assertEqual(query["format"], [data_format.upper()])
 
     def test_url_scheme(self):
         full_url = protocol.ticket_request_url("http://a.com")

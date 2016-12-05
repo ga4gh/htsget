@@ -19,14 +19,16 @@ Test cases for the htsget CLI.
 from __future__ import print_function
 from __future__ import division
 
-import unittest
-import tempfile
 import logging
 import os
+import sys
+import tempfile
+import unittest
 
 import mock
 
 import htsget.cli as cli
+import htsget.exceptions as exceptions
 
 
 class TestMain(unittest.TestCase):
@@ -56,9 +58,15 @@ class TestHtsgetArgumentParser(unittest.TestCase):
         self.assertEqual(args.start, None)
         self.assertEqual(args.end, None)
         self.assertEqual(args.output, None)
+        self.assertEqual(args.max_retries, 5)
+        self.assertEqual(args.retry_wait, 5)
+        self.assertEqual(args.timeout, 10)
 
 
 class TestHtsgetRun(unittest.TestCase):
+    """
+    Tests to ensure the run function correctly passes along parameters.
+    """
 
     def setUp(self):
         fd, self.output_filename = tempfile.mkstemp(prefix="htsget_cli_test_")
@@ -76,6 +84,16 @@ class TestHtsgetRun(unittest.TestCase):
             return mocked_get.call_args
 
     def test_defaults(self):
+        url = "http://example.com/stuff"
+        args, kwargs = self.run_cmd("{}".format(url))
+        self.assertEqual(args[0], url)
+        self.assertEqual(args[1], sys.stdout)
+        self.assertEqual(kwargs["start"], None)
+        self.assertEqual(kwargs["end"], None)
+        self.assertEqual(kwargs["reference_name"], None)
+        self.assertEqual(kwargs["data_format"], None)
+
+    def test_defaults_with_file(self):
         url = "http://example.com/stuff"
         args, kwargs = self.run_cmd("{} -O {}".format(url, self.output_filename))
         self.assertEqual(args[0], url)
@@ -155,6 +173,61 @@ class TestHtsgetRun(unittest.TestCase):
             self.assertEqual(kwargs["end"], end)
             self.assertEqual(kwargs["reference_name"], reference_name)
 
+    def test_format(self):
+        url = "http://example.com/otherstuff"
+        for fmt in ["bam", "CRAM", "anything"]:
+            args, kwargs = self.run_cmd("{} -O {} -f {}".format(
+                url, self.output_filename, fmt))
+            self.assertEqual(args[0], url)
+            self.assertEqual(args[1].name, self.output_filename)
+            self.assertEqual(kwargs["data_format"], fmt)
+
+    def test_max_retries(self):
+        url = "http://example.com/otherstuff"
+        for max_retries in [0, 5, 10]:
+            args, kwargs = self.run_cmd("{} -O {} -M {}".format(
+                url, self.output_filename, max_retries))
+            kwargs["max_retries"] = max_retries
+
+            args, kwargs = self.run_cmd("{} -O {} --max-retries {}".format(
+                url, self.output_filename, max_retries))
+            kwargs["max_retries"] = max_retries
+
+    def test_retry_wait(self):
+        url = "http://example.com/otherstuff"
+        for retry_wait in [0, 5, 10, 1.4]:
+            args, kwargs = self.run_cmd("{} -O {} -W {}".format(
+                url, self.output_filename, retry_wait))
+            kwargs["retry_wait"] = retry_wait
+
+            args, kwargs = self.run_cmd("{} -O {} --retry-wait {}".format(
+                url, self.output_filename, retry_wait))
+            kwargs["retry_wait"] = retry_wait
+
+    def test_timeout(self):
+        url = "http://example.com/otherstuff"
+        for timeout in [0, 5, 10, 1.4]:
+            args, kwargs = self.run_cmd("{} -O {} -r {}".format(
+                url, self.output_filename, timeout))
+            kwargs["timeout"] = timeout
+
+            args, kwargs = self.run_cmd("{} -O {} --timeout {}".format(
+                url, self.output_filename, timeout))
+            kwargs["timeout"] = timeout
+
+    def test_stdout_zero_retries(self):
+        url = "http://example.com/stuff"
+        args, kwargs = self.run_cmd("{}".format(url))
+        self.assertEqual(args[0], url)
+        self.assertEqual(args[1], sys.stdout)
+        self.assertEqual(kwargs["max_retries"], 0)
+
+        # this is true even if we specify it explicitly
+        args, kwargs = self.run_cmd("{} --max-retries 10".format(url))
+        self.assertEqual(args[0], url)
+        self.assertEqual(args[1], sys.stdout)
+        self.assertEqual(kwargs["max_retries"], 0)
+
 
 class TestVerbosity(unittest.TestCase):
     """
@@ -185,3 +258,37 @@ class TestVerbosity(unittest.TestCase):
         self.assertEqual(level, logging.DEBUG)
         level = self.run_cmd("http://url.com --verbose --verbose")
         self.assertEqual(level, logging.DEBUG)
+
+
+class TestRuntimeErrors(unittest.TestCase):
+    """
+    Test cases to cover the various error conditions that may occur at runtime.
+    """
+    def assert_exception_writes_error_message(self, exception, message):
+        parser = cli.get_htsget_parser()
+        args = parser.parse_args(["https://some.url"])
+        saved_stderr = sys.stderr
+        try:
+            with tempfile.TemporaryFile("w+") as tmp_stderr:
+                sys.stderr = tmp_stderr
+                with mock.patch("htsget.get") as mocked_get, \
+                        mock.patch("logging.basicConfig"):
+                    mocked_get.side_effect = exception
+                    cli.run(args)
+                tmp_stderr.seek(0)
+                stderr = tmp_stderr.read().strip()
+        finally:
+            sys.stderr = saved_stderr
+        self.assertTrue(stderr.endswith(message))
+
+    def test_keyboard_interrupt(self):
+        self.assert_exception_writes_error_message(KeyboardInterrupt, "interrupted")
+
+    def test_exception_wrapper(self):
+        msg = "some message"
+        self.assert_exception_writes_error_message(
+            exceptions.ExceptionWrapper(Exception(msg)), msg)
+
+    def test_htsget_exception(self):
+        msg = "some other message"
+        self.assert_exception_writes_error_message(exceptions.HtsgetException(msg), msg)

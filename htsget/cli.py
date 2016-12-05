@@ -28,6 +28,14 @@ import signal
 import sys
 
 import htsget
+import htsget.exceptions as exceptions
+
+
+def error_message(message):
+    """
+    Writes an error message to stderr.
+    """
+    print("{}: error: {}".format(sys.argv[0], message), file=sys.stderr)
 
 
 def run(args):
@@ -38,13 +46,26 @@ def run(args):
         log_level = logging.DEBUG
     logging.basicConfig(format='%(asctime)s %(message)s', level=log_level)
 
-    output = sys.stdout
     if args.output is not None:
         output = open(args.output, "wb")
+    else:
+        output = sys.stdout
+        if args.max_retries != 0:
+            logging.warn(
+                "Cannot retry failed transfers when writing to stdout. Setting "
+                "max_retries to zero")
+            args.max_retries = 0
     try:
         htsget.get(
             args.url, output, reference_name=args.reference_name, start=args.start,
-            end=args.end)
+            end=args.end, data_format=args.format, max_retries=args.max_retries,
+            retry_wait=args.retry_wait, timeout=args.timeout)
+    except exceptions.ExceptionWrapper as ew:
+        error_message(str(ew))
+    except exceptions.HtsgetException as he:
+        error_message(str(he))
+    except KeyboardInterrupt:
+        error_message("interrupted")
     finally:
         if output is not sys.stdout:
             output.close()
@@ -61,7 +82,7 @@ def get_htsget_parser():
     parser.add_argument(
         "url", type=str, help="The URL of the object to retrieve")
     parser.add_argument(
-        "--format", "-F", type=str, default=None,
+        "--format", "-f", type=str, default=None,
         help="The format of data to request.")
     parser.add_argument(
         "--reference-name", "-r", type=str, default=None,
@@ -75,6 +96,15 @@ def get_htsget_parser():
     parser.add_argument(
         "--output", "-O", type=str, default=None,
         help="The output file path. Defaults to stdout")
+    parser.add_argument(
+        "--max-retries", "-M", type=int, default=5,
+        help="The maximum number of times to retry a transfer")
+    parser.add_argument(
+        "--retry-wait", "-W", type=float, default=5,
+        help="The number of seconds to wait before retrying a failed transfer")
+    parser.add_argument(
+        "--timeout", "-T", type=float, default=10,
+        help="The socket timeout for transfers")
     return parser
 
 
