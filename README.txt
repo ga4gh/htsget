@@ -13,7 +13,6 @@ htsget
 
 .. image:: https://readthedocs.org/projects/htsget/badge/?version=latest
     :target: http://htsget.readthedocs.io/en/latest/?badge=latest
-    :alt: Documentation Status
 
 ``htsget`` is a pure-Python API and command line interface for the GA4GH Streaming API. It
 provides a simple and reliable way to retrieve high-throughput sequencing data from
