@@ -8,8 +8,9 @@ Welcome to htsget's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
+   api
+   cli
 
 
 Indices and tables
