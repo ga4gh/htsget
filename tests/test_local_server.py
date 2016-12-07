@@ -26,6 +26,7 @@ import tempfile
 import threading
 import unittest
 
+import mock
 from six.moves import BaseHTTPServer
 from six.moves import socketserver
 from six.moves.urllib.parse import urljoin
@@ -168,7 +169,9 @@ class TestDataTransfers(ServerTest):
             cmd = [TestRequestHandler.ticket_url, "-O", filename]
             parser = cli.get_htsget_parser()
             args = parser.parse_args(cmd)
-            cli.run(args)
+            with mock.patch("sys.exit") as mocked_exit:
+                cli.run(args)
+                mocked_exit.assert_called_once_with(0)
             all_data = b"".join(test_instance.data for test_instance in test_instances)
             with open(filename, "rb") as f:
                 self.assertEqual(f.read(), all_data)
@@ -187,7 +190,9 @@ class TestDataTransfers(ServerTest):
             cmd = [TestRequestHandler.ticket_url]
             parser = cli.get_htsget_parser()
             args = parser.parse_args(cmd)
-            cli.run(args)
+            with mock.patch("sys.exit") as mocked_exit:
+                cli.run(args)
+                mocked_exit.assert_called_once_with(0)
             all_data = b"".join(test_instance.data for test_instance in test_instances)
             self.output_file.seek(0)
             self.assertEqual(self.output_file.read(), all_data)
