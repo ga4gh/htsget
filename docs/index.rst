@@ -6,12 +6,17 @@
 Welcome to htsget's documentation!
 ==================================
 
+``htsget`` is a Python API and command line interface for the GA4GH Streaming API. It
+provides a simple and reliable way to retrieve high-throughput sequencing data from
+servers supporting the protocol.
+
 .. toctree::
    :maxdepth: 2
 
+   installation
+   quickstart
    api
    cli
-
 
 Indices and tables
 ==================
