@@ -26,6 +26,7 @@ import unittest
 
 import mock
 
+from six import StringIO
 from six.moves.urllib.parse import urlparse
 from six.moves.urllib.parse import parse_qs
 
@@ -293,3 +294,20 @@ class TestRetries(unittest.TestCase):
                 temp_file.seek(0)
                 self.assertEqual(real_data, temp_file.read())
                 self.assertEqual(mock_sleep.call_count, len(data_map) * 1)
+
+    def test_unseekable_file(self):
+        def tell_fails():
+            raise IOError()
+        ticket = get_ticket(urls=[get_http_ticket(EXAMPLE_URL)])
+        for num_retries in range(10):
+            temp_file = StringIO()
+            temp_file.tell = tell_fails
+            with mock.patch("time.sleep") as mock_sleep, \
+                    mock.patch("logging.warning") as mock_warning:
+                dm = RetryCountDownloadManager(
+                    ticket, temp_file, max_retries=num_retries)
+                self.assertEqual(dm.max_retries, num_retries)
+                self.assertRaises(exceptions.RetryableError, dm.run)
+                self.assertEqual(dm.attempt_counts[EXAMPLE_URL], 1)
+                self.assertEqual(mock_sleep.call_count, 0)
+                self.assertEqual(mock_warning.call_count, 0)

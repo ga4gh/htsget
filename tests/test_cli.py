@@ -79,9 +79,11 @@ class TestHtsgetRun(unittest.TestCase):
     def run_cmd(self, cmd):
         parser = cli.get_htsget_parser()
         args = parser.parse_args(cmd.split())
-        with mock.patch("htsget.get") as mocked_get:
+        with mock.patch("htsget.get") as mocked_get, \
+                mock.patch("sys.exit") as mocked_exit:
             cli.run(args)
             self.assertEqual(mocked_get.call_count, 1)
+            mocked_exit.assert_called_once_with(0)
             return mocked_get.call_args
 
     def test_defaults(self):
@@ -263,10 +265,12 @@ class TestVerbosity(unittest.TestCase):
         parser = cli.get_htsget_parser()
         args = parser.parse_args(cmd.split())
         with mock.patch("htsget.get") as mocked_get, \
+                mock.patch("sys.exit") as mocked_exit, \
                 mock.patch("logging.basicConfig") as mocked_log_config:
             cli.run(args)
             self.assertEqual(mocked_get.call_count, 1)
             self.assertEqual(mocked_log_config.call_count, 1)
+            mocked_exit.assert_called_once_with(0)
             return mocked_log_config.call_args[1]["level"]
 
     def test_defaults(self):
@@ -298,11 +302,13 @@ class TestRuntimeErrors(unittest.TestCase):
             with tempfile.TemporaryFile("w+") as tmp_stderr:
                 sys.stderr = tmp_stderr
                 with mock.patch("htsget.get") as mocked_get, \
+                        mock.patch("sys.exit") as mocked_exit, \
                         mock.patch("logging.basicConfig"):
                     mocked_get.side_effect = exception
                     cli.run(args)
                 tmp_stderr.seek(0)
                 stderr = tmp_stderr.read().strip()
+                mocked_exit.assert_called_once_with(1)
         finally:
             sys.stderr = saved_stderr
         self.assertTrue(stderr.endswith(message))

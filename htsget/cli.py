@@ -55,12 +55,14 @@ def run(args):
                 "Cannot retry failed transfers when writing to stdout. Setting "
                 "max_retries to zero")
             args.max_retries = 0
+    exit_status = 1
     try:
         htsget.get(
             args.url, output, reference_name=args.reference_name,
             reference_md5=args.reference_md5, start=args.start,
             end=args.end, data_format=args.format, max_retries=args.max_retries,
             retry_wait=args.retry_wait, timeout=args.timeout)
+        exit_status = 0
     except exceptions.ExceptionWrapper as ew:
         error_message(str(ew))
     except exceptions.HtsgetException as he:
@@ -70,6 +72,7 @@ def run(args):
     finally:
         if output is not sys.stdout:
             output.close()
+    sys.exit(exit_status)
 
 
 def get_htsget_parser():
