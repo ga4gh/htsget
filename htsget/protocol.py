@@ -82,13 +82,18 @@ class DownloadManager(object):
     def __retry(self, method, *args):
         completed = False
         num_retries = 0
-        position_before = self.output.tell()
+        position_before = None
+        try:
+            # stdout does not support seek/tell, so we disable retry if this fails
+            position_before = self.output.tell()
+        except IOError:
+            pass
         while not completed:
             try:
                 method(*args)
                 completed = True
             except exceptions.RetryableError as re:
-                if num_retries < self.max_retries:
+                if position_before is not None and num_retries < self.max_retries:
                     num_retries += 1
                     sleep_time = self.retry_wait  # TODO exponential backoff
                     logging.warning(
