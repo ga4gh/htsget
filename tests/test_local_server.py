@@ -21,6 +21,7 @@ from __future__ import division
 
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import threading
@@ -198,6 +199,43 @@ class TestDataTransfers(ServerTest):
             self.assertEqual(self.output_file.read(), all_data)
         finally:
             sys.stdout = saved
+
+
+class TestSubprocessCli(ServerTest):
+    """
+    Runs some tests by forking a subprocess and calling the CLI directly.
+    """
+    def setUp(self):
+        fd, self.output_file = tempfile.mkstemp()
+        os.close(fd)
+        test_instances = [
+            TestUrlInstance(url="/data1", data=b"x" * 1024),
+            TestUrlInstance(url="/data2", data=b"y" * 1024)
+        ]
+        self.stored_data = b"".join(instance.data for instance in test_instances)
+        self.httpd.test_instances = test_instances
+
+    def tearDown(self):
+        os.unlink(self.output_file)
+
+    def test_transfer_with_cli_file(self):
+        cmd = [
+            sys.executable, "htsget_dev.py", TestRequestHandler.ticket_url,
+            "-O", self.output_file]
+        subprocess.check_call(cmd)
+        with open(self.output_file, "rb") as f:
+            data = f.read()
+        self.assertEqual(data, self.stored_data)
+
+    def test_transfer_with_cli_stdout(self):
+        cmd = [
+            sys.executable, "htsget_dev.py", TestRequestHandler.ticket_url,
+            "--max-retries", "0"]
+        with open(self.output_file, "wb") as stdout:
+            subprocess.check_call(cmd, stdout=stdout)
+        with open(self.output_file, "rb") as f:
+            data = f.read()
+        self.assertEqual(data, self.stored_data)
 
 
 class TestErrorHandling(ServerTest):
