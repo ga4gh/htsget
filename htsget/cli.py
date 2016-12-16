@@ -16,10 +16,8 @@
 """
 The command line interface for htsget.
 """
-
 from __future__ import division
 from __future__ import print_function
-
 
 import argparse
 import logging
@@ -49,7 +47,15 @@ def run(args):
     if args.output is not None:
         output = open(args.output, "wb")
     else:
-        output = sys.stdout
+        # This is an awkard hack to get things to work on Python 2 and 3. In Python 3,
+        # if we want to write bytes directly, we need to get the underlying buffer.
+        # This isn't a problem in Python 2, which doesn't have a buffer. Also, to
+        # facilitate testing, we allow stdout to be swapped out for a different file
+        # handle.
+        try:
+            output = sys.stdout.buffer
+        except AttributeError:
+            output = sys.stdout
         if args.max_retries != 0:
             logging.warn(
                 "Cannot retry failed transfers when writing to stdout. Setting "

@@ -90,7 +90,6 @@ class TestHtsgetRun(unittest.TestCase):
         url = "http://example.com/stuff"
         args, kwargs = self.run_cmd("{}".format(url))
         self.assertEqual(args[0], url)
-        self.assertEqual(args[1], sys.stdout)
         self.assertEqual(kwargs["start"], None)
         self.assertEqual(kwargs["end"], None)
         self.assertEqual(kwargs["reference_name"], None)
@@ -247,13 +246,11 @@ class TestHtsgetRun(unittest.TestCase):
         url = "http://example.com/stuff"
         args, kwargs = self.run_cmd("{}".format(url))
         self.assertEqual(args[0], url)
-        self.assertEqual(args[1], sys.stdout)
         self.assertEqual(kwargs["max_retries"], 0)
 
         # this is true even if we specify it explicitly
         args, kwargs = self.run_cmd("{} --max-retries 10".format(url))
         self.assertEqual(args[0], url)
-        self.assertEqual(args[1], sys.stdout)
         self.assertEqual(kwargs["max_retries"], 0)
 
 
