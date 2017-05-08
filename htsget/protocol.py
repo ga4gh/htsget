@@ -41,7 +41,7 @@ def ticket_request_url(
     if reference_name is not None:
         get_vars["referenceName"] = reference_name
     if reference_md5 is not None:
-        get_vars["referenceMd5"] = reference_md5
+        get_vars["referenceMD5"] = reference_md5
     if start is not None:
         get_vars["start"] = int(start)
     if end is not None:
