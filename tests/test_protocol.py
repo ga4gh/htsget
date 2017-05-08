@@ -77,7 +77,7 @@ class TestTicketRequestUrls(unittest.TestCase):
         self.assertEqual(parsed.netloc, "example.com")
         self.assertEqual(parsed.path, "/resource")
         query = parse_qs(parsed.query)
-        self.assertEqual(query["referenceMd5"], [md5])
+        self.assertEqual(query["referenceMD5"], [md5])
         self.assertEqual(len(query), 1)
 
     def test_format(self):
