@@ -93,7 +93,7 @@ class SynchronousDownloadManager(protocol.DownloadManager):
     def _handle_ticket_request(self):
         logging.debug("handle_ticket_request(url={})".format(self.ticket_request_url))
         response = self.__get(self.ticket_request_url, timeout=self.timeout)
-        self.ticket = response.json()
+        self.ticket = protocol.parse_ticket(response.text)
 
     def _handle_http_url(self, url, headers):
         logging.debug("handle_http_url(url={}, headers={})".format(url, headers))

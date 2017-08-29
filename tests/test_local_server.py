@@ -82,9 +82,7 @@ class TestRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     "url": urljoin(SERVER_URL, test_instance.url),
                     "headers": test_instance.headers
                 } for test_instance in self.server.test_instances]
-            ticket = {
-                "urls": urls
-            }
+            ticket = {"htsget": {"urls": urls}}
             self.wfile.write(json.dumps(ticket).encode())
         elif self.path in url_map:
             instance = url_map[self.path]

@@ -26,6 +26,30 @@ class HtsgetException(Exception):
     """
 
 
+class ProtocolError(HtsgetException):
+    """
+    Superclass of exceptions raised when the server violates the protocol.
+    """
+
+
+class InvalidJsonError(ProtocolError):
+    """
+    The server returned invalid JSON.
+    """
+    def __init__(self, exception):
+        super(InvalidJsonError, self).__init__(
+            "The server returned invalid JSON:{}".format(exception))
+
+
+class MalformedJsonError(ProtocolError):
+    """
+    The server returned valid JSON, but it doesn't conform to the protocol.
+    """
+    def __init__(self):
+        super(MalformedJsonError, self).__init__(
+            "JSON returned by the server is not in the expected format")
+
+
 class ExceptionWrapper(HtsgetException):
     """
     A wrapper for exceptions raised by lower-level libraries. The source

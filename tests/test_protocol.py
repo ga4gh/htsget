@@ -21,6 +21,7 @@ from __future__ import division
 
 import base64
 import collections
+import json
 import tempfile
 import unittest
 
@@ -44,6 +45,32 @@ class TestManagerAbstractMethods(unittest.TestCase):
         dm = protocol.DownloadManager(EXAMPLE_URL, None)
         self.assertRaises(NotImplementedError, dm._ticket_request)
         self.assertRaises(NotImplementedError, dm._handle_http_url, {})
+
+
+class TestParseTicket(unittest.TestCase):
+    """
+    Tests that parse_ticket behaves as required.
+    """
+    def test_simple_case(self):
+        content = {"urls": ["1", "2"]}
+        text = json.dumps({"htsget": content})
+        ticket = protocol.parse_ticket(text)
+        self.assertEqual(ticket, content)
+
+    def test_malformed_json(self):
+        content = {"urls": ["1", "2"]}
+        # The response does not contain the htsget prefix
+        text = json.dumps(content)
+        self.assertRaises(exceptions.MalformedJsonError, protocol.parse_ticket, text)
+        for invalid_prefix in ["HTSGET", "", "htsget-v.0.1", "htsge"]:
+            content = {"urls": ["1", "2"]}
+            # The response does not contain the htsget prefix
+            text = json.dumps({invalid_prefix: content})
+            self.assertRaises(exceptions.MalformedJsonError, protocol.parse_ticket, text)
+
+    def test_invalid_json(self):
+        for text in ["", '"number":12334', "{json}"]:
+            self.assertRaises(exceptions.InvalidJsonError, protocol.parse_ticket, text)
 
 
 class TestTicketRequestUrls(unittest.TestCase):
