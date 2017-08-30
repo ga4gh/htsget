@@ -19,6 +19,7 @@ Test cases for the io handling code.
 from __future__ import print_function
 from __future__ import division
 
+import json
 import tempfile
 import unittest
 
@@ -32,12 +33,9 @@ class MockedResponse(object):
     Mocked response object for requests.
     """
     def __init__(self, ticket, data):
-        self.ticket = ticket
         self.headers = {}
         self.data = data
-
-    def json(self):
-        return self.ticket
+        self.text = json.dumps(ticket)
 
     def raise_for_status(self):
         pass
@@ -55,9 +53,8 @@ class MockedRequestsTest(unittest.TestCase):
         ticket_url = "http://ticket.com"
         data_url = "http://data.url.com"
         headers = {"a": "a", "xyz": "ghj"}
-        ticket = {"urls": [
-            {"url": data_url, "headers": headers}
-        ]}
+        ticket = {"htsget": {
+            "urls": [{"url": data_url, "headers": headers}]}}
         data = b"0" * 1024
         returned_response = MockedResponse(ticket, data)
         with mock.patch("requests.get", return_value=returned_response) as mocked_get:

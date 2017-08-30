@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import base64
+import json
 import logging
 import time
 
@@ -29,6 +30,8 @@ from six.moves.urllib.parse import urlparse
 from six.moves.urllib.parse import parse_qs
 
 import htsget.exceptions as exceptions
+
+TICKET_ROOT_KEY = "htsget"
 
 
 def ticket_request_url(
@@ -57,6 +60,20 @@ def ticket_request_url(
     new_url = list(parsed_url)
     new_url[4] = urlencode(get_vars, doseq=True)
     return urlunparse(new_url)
+
+
+def parse_ticket(json_text):
+    """
+    Parses the specified ticket response and returns a dictionary of the
+    contents of the root 'htsget' element.
+    """
+    try:
+        parsed = json.loads(json_text)
+    except ValueError as ve:
+        raise exceptions.InvalidJsonError(ve)
+    if TICKET_ROOT_KEY not in parsed:
+        raise exceptions.MalformedJsonError()
+    return parsed[TICKET_ROOT_KEY]
 
 
 class DownloadManager(object):
