@@ -61,7 +61,7 @@ class TestHtsgetArgumentParser(unittest.TestCase):
         self.assertEqual(args.output, None)
         self.assertEqual(args.max_retries, 5)
         self.assertEqual(args.retry_wait, 5)
-        self.assertEqual(args.timeout, 10)
+        self.assertEqual(args.timeout, 120)
 
 
 class TestHtsgetRun(unittest.TestCase):

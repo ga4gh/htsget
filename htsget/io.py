@@ -32,7 +32,7 @@ CONTENT_LENGTH = "Content-Length"
 def get(
         url, output, reference_name=None, reference_md5=None,
         start=None, end=None, fields=None, tags=None, notags=None,
-        data_format=None, max_retries=5, retry_wait=5, timeout=10):
+        data_format=None, max_retries=5, retry_wait=5, timeout=120):
     """
     Runs a request to the specified URL and write the resulting data to
     the specified file-like object.
