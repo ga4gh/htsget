@@ -132,7 +132,7 @@ def get_htsget_parser():
         "--retry-wait", "-W", type=float, default=5,
         help="The number of seconds to wait before retrying a failed transfer.")
     parser.add_argument(
-        "--timeout", "-T", type=float, default=10,
+        "--timeout", "-T", type=float, default=120,
         help="The socket timeout for transfers.")
     return parser
 
