@@ -41,6 +41,27 @@ class InvalidJsonError(ProtocolError):
             "The server returned invalid JSON:{}".format(exception))
 
 
+class InvalidLeadingJsonError(ProtocolError):
+    """
+    The server returned invalid JSON, indicated by the first few bytes of the
+    response not containing a '{' char.
+    """
+    def __init__(self, first_char):
+        super(InvalidLeadingJsonError, self).__init__(
+            "The server returned invalid JSON; the first non whitespace "
+            "byte should be '{{' but is = '{}'".format(first_char))
+
+
+class TicketDecodeError(ProtocolError):
+    """
+    The server returned ticket data that could not be decoded.
+    """
+    def __init__(self, exception):
+        super(TicketDecodeError, self).__init__(
+            "The server returned ticket data that could not be decoded:{}".format(
+                exception))
+
+
 class MalformedJsonError(ProtocolError):
     """
     The server returned valid JSON, but it doesn't conform to the protocol.
