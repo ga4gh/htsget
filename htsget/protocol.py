@@ -83,10 +83,11 @@ class DownloadManager(object):
     def __init__(
             self, url, output, data_format=None, reference_name=None,
             reference_md5=None, start=None, end=None, fields=None, tags=None,
-            notags=None, max_retries=5, timeout=10, retry_wait=5):
+            notags=None, max_retries=5, timeout=10, retry_wait=5, bearer_token=None):
         self.max_retries = max_retries
         self.timeout = timeout
         self.retry_wait = retry_wait
+        self.bearer_token = bearer_token
         self.output = output
         self.ticket_request_url = ticket_request_url(
             url, data_format=data_format, reference_name=reference_name,

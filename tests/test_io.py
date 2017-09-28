@@ -50,6 +50,21 @@ class MockedResponse(object):
             self.ticket_served = True
 
 
+class MockedTicketResponse(object):
+    """
+    Mocked response for when we make a ticket request
+    """
+    def __init__(self, ticket):
+        self.headers = {}
+        self.ticket = ticket
+
+    def raise_for_status(self):
+        pass
+
+    def iter_content(self, size):
+        yield self.ticket
+
+
 class MockedRequestsTest(unittest.TestCase):
     """
     Test cases where we mock out requests.get.
@@ -75,6 +90,45 @@ class MockedRequestsTest(unittest.TestCase):
             self.assertEqual(kwargs["headers"], headers)
             self.assertEqual(kwargs["stream"], True)
 
+    def test_bearer_token(self):
+        ticket_url = "http://ticket.com"
+        ticket = {"htsget": {"urls": []}}
+        bearer_token = "x" * 1024
+        returned_response = MockedTicketResponse(json.dumps(ticket).encode())
+        with mock.patch("requests.get", return_value=returned_response) as mocked_get:
+            with tempfile.NamedTemporaryFile("wb+") as f:
+                htsget.get(ticket_url, f, bearer_token=bearer_token)
+                f.seek(0)
+                self.assertEqual(f.read(), b"")
+            # Because we have no URLs in the returned ticked, it should be called
+            # only once.
+            self.assertEqual(mocked_get.call_count, 1)
+            # Note that we only get the arguments for the last call using this method.
+            args, kwargs = mocked_get.call_args
+            self.assertEqual(args[0], ticket_url)
+            headers = {"Authorization": "Bearer {}".format(bearer_token)}
+            self.assertEqual(kwargs["headers"], headers)
+            self.assertEqual(kwargs["stream"], True)
+
+    def test_no_bearer_token(self):
+        ticket_url = "http://ticket.com"
+        ticket = {"htsget": {"urls": []}}
+        returned_response = MockedTicketResponse(json.dumps(ticket).encode())
+        with mock.patch("requests.get", return_value=returned_response) as mocked_get:
+            with tempfile.NamedTemporaryFile("wb+") as f:
+                htsget.get(ticket_url, f)
+                f.seek(0)
+                self.assertEqual(f.read(), b"")
+            # Because we have no URLs in the returned ticked, it should be called
+            # only once.
+            self.assertEqual(mocked_get.call_count, 1)
+            # Note that we only get the arguments for the last call using this method.
+            args, kwargs = mocked_get.call_args
+            self.assertEqual(args[0], ticket_url)
+            headers = {}
+            self.assertEqual(kwargs["headers"], headers)
+            self.assertEqual(kwargs["stream"], True)
+
     def test_leading_json_error(self):
         ticket_url = "http://ticket.com"
         ticket = (b" " * 100) + b"0" * 1024
@@ -97,6 +151,20 @@ class MockedRequestsTest(unittest.TestCase):
             with tempfile.NamedTemporaryFile("wb+") as f:
                 self.assertRaises(
                     exceptions.TicketDecodeError, htsget.get, ticket_url, f)
+            self.assertEqual(mocked_get.call_count, 1)
+            # Note that we only get the arguments for the last call using this method.
+            args, kwargs = mocked_get.call_args
+            self.assertEqual(kwargs["headers"], {})
+            self.assertEqual(kwargs["stream"], True)
+
+    def test_empty_json_error(self):
+        ticket_url = "http://ticket.com"
+        ticket = b""
+        returned_response = MockedResponse(ticket, b"")
+        with mock.patch("requests.get", return_value=returned_response) as mocked_get:
+            with tempfile.NamedTemporaryFile("wb+") as f:
+                self.assertRaises(
+                    exceptions.EmptyTicketError, htsget.get, ticket_url, f)
             self.assertEqual(mocked_get.call_count, 1)
             # Note that we only get the arguments for the last call using this method.
             args, kwargs = mocked_get.call_args

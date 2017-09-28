@@ -62,6 +62,7 @@ class TestHtsgetArgumentParser(unittest.TestCase):
         self.assertEqual(args.max_retries, 5)
         self.assertEqual(args.retry_wait, 5)
         self.assertEqual(args.timeout, 120)
+        self.assertEqual(args.bearer_token, None)
 
 
 class TestHtsgetRun(unittest.TestCase):
@@ -241,6 +242,17 @@ class TestHtsgetRun(unittest.TestCase):
             args, kwargs = self.run_cmd("{} -O {} --timeout {}".format(
                 url, self.output_filename, timeout))
             kwargs["timeout"] = timeout
+
+    def test_bearer_token(self):
+        url = "http://example.com/otherstuff"
+        for bearer_token in ["yy", "x" * 1024]:
+            args, kwargs = self.run_cmd("{} -O {} -b {}".format(
+                url, self.output_filename, bearer_token))
+            kwargs["bearer-token"] = bearer_token
+
+            args, kwargs = self.run_cmd("{} -O {} --bearer-token {}".format(
+                url, self.output_filename, bearer_token))
+            kwargs["bearer_token"] = bearer_token
 
     def test_stdout_zero_retries(self):
         url = "http://example.com/stuff"

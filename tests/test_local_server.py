@@ -94,6 +94,7 @@ class TestRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 if instance.truncate:
                     self.end_headers()
                     self.wfile.write(instance.data[:-1])
+                    self.wfile.flush()
                 else:
                     self.end_headers()
                     self.wfile.write(instance.data)
@@ -256,6 +257,14 @@ class TestErrorHandling(ServerTest):
         ]
         self.assertRaises(
             exceptions.RetryableIOError, htsget.get,
+            TestRequestHandler.ticket_url, self.output_file, max_retries=0)
+
+    def test_authorisation_error(self):
+        self.httpd.test_instances = [
+            TestUrlInstance(url="/fail1", data=b"", error_code=401)
+        ]
+        self.assertRaises(
+            exceptions.ExceptionWrapper, htsget.get,
             TestRequestHandler.ticket_url, self.output_file, max_retries=0)
 
     def test_data_truncation(self):
