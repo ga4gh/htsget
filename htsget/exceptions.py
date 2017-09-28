@@ -71,6 +71,15 @@ class MalformedJsonError(ProtocolError):
             "JSON returned by the server is not in the expected format")
 
 
+class EmptyTicketError(ProtocolError):
+    """
+    Error raised when the ticket server returns an empty response.
+    """
+    def __init__(self):
+        super(EmptyTicketError, self).__init__(
+            "The server returned an empty JSON ticket")
+
+
 class ExceptionWrapper(HtsgetException):
     """
     A wrapper for exceptions raised by lower-level libraries. The source

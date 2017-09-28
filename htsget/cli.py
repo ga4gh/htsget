@@ -67,7 +67,8 @@ def run(args):
             args.url, output, reference_name=args.reference_name,
             reference_md5=args.reference_md5, start=args.start,
             end=args.end, data_format=args.format, max_retries=args.max_retries,
-            retry_wait=args.retry_wait, timeout=args.timeout)
+            retry_wait=args.retry_wait, timeout=args.timeout,
+            bearer_token=args.bearer_token)
         exit_status = 0
     except exceptions.ExceptionWrapper as ew:
         error_message(str(ew))
@@ -134,6 +135,9 @@ def get_htsget_parser():
     parser.add_argument(
         "--timeout", "-T", type=float, default=120,
         help="The socket timeout for transfers.")
+    parser.add_argument(
+        "--bearer-token", "-b", default=None,
+        help="The OAuth2 bearer token to present to the htsget ticket server.")
     return parser
 
 

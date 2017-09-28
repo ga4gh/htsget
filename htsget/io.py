@@ -32,7 +32,8 @@ CONTENT_LENGTH = "Content-Length"
 def get(
         url, output, reference_name=None, reference_md5=None,
         start=None, end=None, fields=None, tags=None, notags=None,
-        data_format=None, max_retries=5, retry_wait=5, timeout=120):
+        data_format=None, max_retries=5, retry_wait=5, timeout=120,
+        bearer_token=None):
     """
     Runs a request to the specified URL and write the resulting data to
     the specified file-like object.
@@ -61,12 +62,19 @@ def get(
     :param float retry_wait: The amount of time in seconds to wait before retrying
         a failed transfer.
     :param float timeout: The socket timeout for I/O operations.
+    :param bearer_token: The OAuth2 Bearer token to present to the htsget ticket server.
+        If this value is specified, the token is provided to the ticket server using
+        the ``Authorization: Bearer [token]`` header. If ``bearer_token`` is None
+        or not specified, no Authorization header is sent to the server. Obtaining
+        the bearer token is beyond the scope of htsget; consult the documentation
+        for your server for information on authentication and how to obtain a
+        valid token.
     """
     manager = SynchronousDownloadManager(
         url, output, reference_name=reference_name,
         reference_md5=reference_md5, start=start, end=end, fields=fields, tags=tags,
         notags=notags, data_format=data_format, max_retries=max_retries, timeout=timeout,
-        retry_wait=retry_wait)
+        retry_wait=retry_wait, bearer_token=bearer_token)
     manager.run()
 
 
@@ -85,6 +93,8 @@ class SynchronousDownloadManager(protocol.DownloadManager):
         except requests.HTTPError as he:
             # TODO classify other errors that we consider unrecoverable.
             if response.status_code == 404:
+                raise exceptions.ExceptionWrapper(he)
+            if response.status_code == 401:
                 raise exceptions.ExceptionWrapper(he)
             else:
                 raise exceptions.RetryableIOError(he)
@@ -107,20 +117,28 @@ class SynchronousDownloadManager(protocol.DownloadManager):
                     "Length mismatch {} != {}".format(content_length, length))
 
     def _handle_ticket_request(self):
-        logging.debug("handle_ticket_request(url={})".format(self.ticket_request_url))
         # TODO Add some mechanism for checking the content type here. Possibly a
         # callback that checks the headers on the ticket response?
         # TODO Check the Content-Type for encoding and use it here, if provided.
         encoding = "utf-8"
-        stream = iter(self._stream(self.ticket_request_url))
+        headers = {}
+        if self.bearer_token is not None:
+            headers["Authorization"] = "Bearer {}".format(self.bearer_token)
+        # TODO should we XXXX out the actual token here in case someone leaks
+        # the bearer token to logs??
+        logging.debug("handle_ticket_request(url={}, headers={})".format(
+            self.ticket_request_url, headers))
+        stream = iter(self._stream(self.ticket_request_url, headers=headers))
         # Peek at the first few bytes of the result to see if it is probably JSON.
         # If not we can end the transfer early. This is useful when the user mistakenly
         # points to a URL for a very large file. In practise, we will often get
         # UnicodeDecodeError when we do this.
         try:
-            first_piece = next(stream).decode(encoding)
+            first_piece = next(stream, "").decode(encoding)
         except UnicodeDecodeError as ude:
             raise exceptions.TicketDecodeError(ude)
+        if len(first_piece) == 0:
+            raise exceptions.EmptyTicketError()
         stripped = first_piece.lstrip()
         if stripped[0] != '{':
             raise exceptions.InvalidLeadingJsonError(stripped[0])
