@@ -1,5 +1,5 @@
 #
-# Copyright 2016 University of Oxford
+# Copyright 2016-2017 University of Oxford
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -90,20 +90,14 @@ class SynchronousDownloadManager(protocol.DownloadManager):
                 raise exceptions.RetryableIOError(he)
         return response
 
-    def _handle_ticket_request(self):
-        logging.debug("handle_ticket_request(url={})".format(self.ticket_request_url))
-        response = self.__get(self.ticket_request_url, timeout=self.timeout)
-        self.ticket = protocol.parse_ticket(response.text)
-
-    def _handle_http_url(self, url, headers):
-        logging.debug("handle_http_url(url={}, headers={})".format(url, headers))
+    def _stream(self, url, headers={}):
         response = self.__get(url, headers=headers, stream=True, timeout=self.timeout)
         length = 0
         piece_size = 65536
         try:
             for piece in response.iter_content(piece_size):
                 length += len(piece)
-                self.output.write(piece)
+                yield piece
         except requests.RequestException as re:
             raise exceptions.RetryableIOError(re)
         if CONTENT_LENGTH in response.headers:
@@ -111,3 +105,29 @@ class SynchronousDownloadManager(protocol.DownloadManager):
             if content_length != length:
                 raise exceptions.ContentLengthMismatch(
                     "Length mismatch {} != {}".format(content_length, length))
+
+    def _handle_ticket_request(self):
+        logging.debug("handle_ticket_request(url={})".format(self.ticket_request_url))
+        # TODO Add some mechanism for checking the content type here. Possibly a
+        # callback that checks the headers on the ticket response?
+        # TODO Check the Content-Type for encoding and use it here, if provided.
+        encoding = "utf-8"
+        stream = iter(self._stream(self.ticket_request_url))
+        # Peek at the first few bytes of the result to see if it is probably JSON.
+        # If not we can end the transfer early. This is useful when the user mistakenly
+        # points to a URL for a very large file. In practise, we will often get
+        # UnicodeDecodeError when we do this.
+        try:
+            first_piece = next(stream).decode(encoding)
+        except UnicodeDecodeError as ude:
+            raise exceptions.TicketDecodeError(ude)
+        stripped = first_piece.lstrip()
+        if stripped[0] != '{':
+            raise exceptions.InvalidLeadingJsonError(stripped[0])
+        text = "".join([first_piece] + [piece.encode(encoding) for piece in stream])
+        self.ticket = protocol.parse_ticket(text)
+
+    def _handle_http_url(self, url, headers):
+        logging.debug("handle_http_url(url={}, headers={})".format(url, headers))
+        for piece in self._stream(url, headers):
+            self.output.write(piece)

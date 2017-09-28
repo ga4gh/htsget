@@ -1,5 +1,5 @@
 #
-# Copyright 2016 University of Oxford
+# Copyright 2016-2017 University of Oxford
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import unittest
 import mock
 
 import htsget
+import htsget.exceptions as exceptions
 
 
 class MockedResponse(object):
@@ -35,13 +36,18 @@ class MockedResponse(object):
     def __init__(self, ticket, data):
         self.headers = {}
         self.data = data
-        self.text = json.dumps(ticket)
+        self.ticket = ticket
+        self.ticket_served = False
 
     def raise_for_status(self):
         pass
 
     def iter_content(self, size):
-        yield self.data
+        if self.ticket_served:
+            yield self.data
+        else:
+            yield self.ticket
+            self.ticket_served = True
 
 
 class MockedRequestsTest(unittest.TestCase):
@@ -56,7 +62,7 @@ class MockedRequestsTest(unittest.TestCase):
         ticket = {"htsget": {
             "urls": [{"url": data_url, "headers": headers}]}}
         data = b"0" * 1024
-        returned_response = MockedResponse(ticket, data)
+        returned_response = MockedResponse(json.dumps(ticket).encode(), data)
         with mock.patch("requests.get", return_value=returned_response) as mocked_get:
             with tempfile.NamedTemporaryFile("wb+") as f:
                 htsget.get(ticket_url, f)
@@ -67,4 +73,32 @@ class MockedRequestsTest(unittest.TestCase):
             args, kwargs = mocked_get.call_args
             self.assertEqual(args[0], data_url)
             self.assertEqual(kwargs["headers"], headers)
+            self.assertEqual(kwargs["stream"], True)
+
+    def test_leading_json_error(self):
+        ticket_url = "http://ticket.com"
+        ticket = (b" " * 100) + b"0" * 1024
+        returned_response = MockedResponse(ticket, b"")
+        with mock.patch("requests.get", return_value=returned_response) as mocked_get:
+            with tempfile.NamedTemporaryFile("wb+") as f:
+                self.assertRaises(
+                    exceptions.InvalidLeadingJsonError, htsget.get, ticket_url, f)
+            self.assertEqual(mocked_get.call_count, 1)
+            # Note that we only get the arguments for the last call using this method.
+            args, kwargs = mocked_get.call_args
+            self.assertEqual(kwargs["headers"], {})
+            self.assertEqual(kwargs["stream"], True)
+
+    def test_undecodable_json(self):
+        ticket_url = "http://ticket.com"
+        ticket = bytearray([0xff] * 100)
+        returned_response = MockedResponse(ticket, b"")
+        with mock.patch("requests.get", return_value=returned_response) as mocked_get:
+            with tempfile.NamedTemporaryFile("wb+") as f:
+                self.assertRaises(
+                    exceptions.TicketDecodeError, htsget.get, ticket_url, f)
+            self.assertEqual(mocked_get.call_count, 1)
+            # Note that we only get the arguments for the last call using this method.
+            args, kwargs = mocked_get.call_args
+            self.assertEqual(kwargs["headers"], {})
             self.assertEqual(kwargs["stream"], True)
