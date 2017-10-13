@@ -92,10 +92,8 @@ class SynchronousDownloadManager(protocol.DownloadManager):
             response.raise_for_status()
         except requests.HTTPError as he:
             # TODO classify other errors that we consider unrecoverable.
-            if response.status_code == 404:
-                raise exceptions.ExceptionWrapper(he)
-            if response.status_code == 401:
-                raise exceptions.ExceptionWrapper(he)
+            if response.status_code in [400, 401, 404]:
+                raise exceptions.ClientError(str(he), response.text)
             else:
                 raise exceptions.RetryableIOError(he)
         return response
