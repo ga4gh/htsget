@@ -80,6 +80,18 @@ class EmptyTicketError(ProtocolError):
             "The server returned an empty JSON ticket")
 
 
+class ClientError(HtsgetException):
+    """
+    The exception raised when a client error is returned by the server.
+    """
+    def __init__(self, exception_str, body):
+        self.exception_str = exception_str
+        self.body = body
+
+    def __str__(self):
+        return "{}:{}".format(self.exception_str, self.body)
+
+
 class ExceptionWrapper(HtsgetException):
     """
     A wrapper for exceptions raised by lower-level libraries. The source

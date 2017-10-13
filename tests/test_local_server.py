@@ -1,5 +1,5 @@
 #
-# Copyright 2016 University of Oxford
+# Copyright 2016-2017 University of Oxford
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -236,6 +236,21 @@ class TestSubprocessCli(ServerTest):
             data = f.read()
         self.assertEqual(data, self.stored_data)
 
+    # TODO we should have a range of different errors here and verify that we
+    # do actually print out the returned error message.
+    def test_cli_error(self):
+        cmd = [
+            sys.executable, "htsget_dev.py", TestRequestHandler.ticket_url + "XXX",
+            "-O", self.output_file]
+        with tempfile.TemporaryFile("wb+") as stderr, \
+                tempfile.TemporaryFile("wb+") as stdout:
+            ret = subprocess.call(cmd, stderr=stderr, stdout=stdout)
+            self.assertEqual(ret, 1)
+            stderr.seek(0)
+            stdout.seek(0)
+            self.assertGreater(len(stderr.read()), 0)
+            self.assertEqual(len(stdout.read()), 0)
+
 
 class TestErrorHandling(ServerTest):
     """
@@ -243,7 +258,7 @@ class TestErrorHandling(ServerTest):
     """
     def test_missing_path(self):
         self.assertRaises(
-            exceptions.ExceptionWrapper, htsget.get, SERVER_URL + "/nopath",
+            exceptions.ClientError, htsget.get, SERVER_URL + "/nopath",
             self.output_file, max_retries=0)
 
     def test_bad_port(self):
@@ -264,7 +279,7 @@ class TestErrorHandling(ServerTest):
             TestUrlInstance(url="/fail1", data=b"", error_code=401)
         ]
         self.assertRaises(
-            exceptions.ExceptionWrapper, htsget.get,
+            exceptions.ClientError, htsget.get,
             TestRequestHandler.ticket_url, self.output_file, max_retries=0)
 
     def test_data_truncation(self):
