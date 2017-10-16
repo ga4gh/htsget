@@ -20,11 +20,13 @@ from __future__ import division
 from __future__ import print_function
 
 import logging
+import time
 
 import htsget.protocol as protocol
 import htsget.exceptions as exceptions
 
 import requests
+import humanize
 
 CONTENT_LENGTH = "Content-Length"
 
@@ -99,6 +101,7 @@ class SynchronousDownloadManager(protocol.DownloadManager):
         return response
 
     def _stream(self, url, headers={}):
+
         response = self.__get(url, headers=headers, stream=True, timeout=self.timeout)
         length = 0
         piece_size = 65536
@@ -140,10 +143,17 @@ class SynchronousDownloadManager(protocol.DownloadManager):
         stripped = first_piece.lstrip()
         if stripped[0] != '{':
             raise exceptions.InvalidLeadingJsonError(stripped[0])
-        text = "".join([first_piece] + [piece.encode(encoding) for piece in stream])
+        text = "".join([first_piece] + [piece.decode(encoding) for piece in stream])
         self.ticket = protocol.parse_ticket(text)
 
     def _handle_http_url(self, url, headers):
         logging.debug("handle_http_url(url={}, headers={})".format(url, headers))
+        before = time.clock()
+        start_offset = self.output.tell()
         for piece in self._stream(url, headers):
             self.output.write(piece)
+        duration = time.clock() - before
+        size = self.output.tell() - start_offset
+        rate = (size / (2**20)) / duration
+        logging.info("Downloaded {} chunk in {:.2f} seconds @ {:.2f} MiB/s".format(
+            humanize.naturalsize(size, binary=True), duration, rate))

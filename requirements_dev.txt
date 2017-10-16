@@ -1,6 +1,7 @@
 codecov
 coverage
 flake8
+humanize
 nose
 mock
 requests
