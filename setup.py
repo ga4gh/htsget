@@ -19,7 +19,7 @@ setup(
             'htsget=htsget.cli:htsget_main',
         ]
     },
-    install_requires=["requests", "six"],
+    install_requires=["requests", "six", "humanize"],
     keywords=["BAM", "CRAM", "Streaming"],
     license="Apache Software License",
     classifiers=[

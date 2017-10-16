@@ -54,15 +54,22 @@ class MockedTicketResponse(object):
     """
     Mocked response for when we make a ticket request
     """
-    def __init__(self, ticket):
+    def __init__(self, ticket, char_by_char=False):
         self.headers = {}
         self.ticket = ticket
+        self.char_by_char = char_by_char
 
     def raise_for_status(self):
         pass
 
     def iter_content(self, size):
-        yield self.ticket
+        if self.char_by_char:
+            yield self.ticket
+        else:
+            for j in range(len(self.ticket)):
+                # Do this because getting a single value returns an integer
+                char = self.ticket[j: j + 1]
+                yield char
 
 
 class MockedRequestsTest(unittest.TestCase):
@@ -114,6 +121,27 @@ class MockedRequestsTest(unittest.TestCase):
         ticket_url = "http://ticket.com"
         ticket = {"htsget": {"urls": []}}
         returned_response = MockedTicketResponse(json.dumps(ticket).encode())
+        with mock.patch("requests.get", return_value=returned_response) as mocked_get:
+            with tempfile.NamedTemporaryFile("wb+") as f:
+                htsget.get(ticket_url, f)
+                f.seek(0)
+                self.assertEqual(f.read(), b"")
+            # Because we have no URLs in the returned ticked, it should be called
+            # only once.
+            self.assertEqual(mocked_get.call_count, 1)
+            # Note that we only get the arguments for the last call using this method.
+            args, kwargs = mocked_get.call_args
+            self.assertEqual(args[0], ticket_url)
+            headers = {}
+            self.assertEqual(kwargs["headers"], headers)
+            self.assertEqual(kwargs["stream"], True)
+
+    def test_ticket_char_by_char(self):
+        # Tests the streaming code for the ticket response.
+        ticket_url = "http://ticket.com"
+        ticket = {"htsget": {"urls": []}, "padding": "X" * 10}
+        returned_response = MockedTicketResponse(
+                json.dumps(ticket).encode(), char_by_char=True)
         with mock.patch("requests.get", return_value=returned_response) as mocked_get:
             with tempfile.NamedTemporaryFile("wb+") as f:
                 htsget.get(ticket_url, f)
