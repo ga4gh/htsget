@@ -148,11 +148,11 @@ class SynchronousDownloadManager(protocol.DownloadManager):
 
     def _handle_http_url(self, url, headers):
         logging.debug("handle_http_url(url={}, headers={})".format(url, headers))
-        before = time.clock()
+        before = time.time()
         start_offset = self.output.tell()
         for piece in self._stream(url, headers):
             self.output.write(piece)
-        duration = time.clock() - before
+        duration = time.time() - before
         size = self.output.tell() - start_offset
         rate = (size / (2**20)) / duration
         logging.info("Downloaded {} chunk in {:.2f} seconds @ {:.2f} MiB/s".format(
