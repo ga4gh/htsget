@@ -153,6 +153,9 @@ class SynchronousDownloadManager(protocol.DownloadManager):
         for piece in self._stream(url, headers):
             self.output.write(piece)
         duration = time.time() - before
+        # On Windows we seem to get 0 values for duration. Just round up to one second.
+        # Rates over intervals less than this are meaningless anyway.
+        duration = max(1, duration)
         size = self.output.tell() - start_offset
         rate = (size / (2**20)) / duration
         logging.info("Downloaded {} chunk in {:.2f} seconds @ {:.2f} MiB/s".format(
