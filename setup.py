@@ -8,7 +8,7 @@ with open("README.txt") as f:
 
 setup(
     name="htsget",
-    description="Python API and command line interface for the GA4GH streaming API.",
+    description="Python API and command line interface for the GA4GH htsget API.",
     long_description=long_description,
     packages=["htsget"],
     author="Jerome Kelleher",
@@ -20,7 +20,7 @@ setup(
         ]
     },
     install_requires=["requests", "six", "humanize"],
-    keywords=["BAM", "CRAM", "Streaming"],
+    keywords=["BAM", "CRAM", "htsget"],
     license="Apache Software License",
     classifiers=[
         "Programming Language :: Python",
