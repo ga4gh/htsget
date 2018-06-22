@@ -149,14 +149,14 @@ class SynchronousDownloadManager(protocol.DownloadManager):
     def _handle_http_url(self, url, headers):
         logging.debug("handle_http_url(url={}, headers={})".format(url, headers))
         before = time.time()
-        start_offset = self.output.tell()
+        size = 0
         for piece in self._stream(url, headers):
+            size += len(piece)
             self.output.write(piece)
         duration = time.time() - before
         # On Windows we seem to get 0 values for duration. Just round up to one second.
         # Rates over intervals less than this are meaningless anyway.
         duration = max(1, duration)
-        size = self.output.tell() - start_offset
         rate = (size / (2**20)) / duration
         logging.info("Downloaded {} chunk in {:.2f} seconds @ {:.2f} MiB/s".format(
             humanize.naturalsize(size, binary=True), duration, rate))

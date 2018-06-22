@@ -26,6 +26,7 @@ import sys
 import tempfile
 import threading
 import unittest
+import platform
 
 import mock
 from six.moves import BaseHTTPServer
@@ -38,6 +39,8 @@ import htsget.cli as cli
 
 PORT = 6160
 SERVER_URL = "http://localhost:{}".format(PORT)
+
+IS_WINDOWS = platform.system() == "Windows"
 
 
 class TestUrlInstance(object):
@@ -232,6 +235,17 @@ class TestSubprocessCli(ServerTest):
             "--max-retries", "0"]
         with open(self.output_file, "wb") as stdout:
             subprocess.check_call(cmd, stdout=stdout)
+        with open(self.output_file, "rb") as f:
+            data = f.read()
+        self.assertEqual(data, self.stored_data)
+
+    @unittest.skipIf(IS_WINDOWS, "Pipe tests don't make sense on windows")
+    def test_transfer_with_cli_pipe(self):
+        cmd = [
+            sys.executable, "htsget_dev.py", TestRequestHandler.ticket_url,
+            "--max-retries", "0", "| cat"]
+        with open(self.output_file, "wb") as stdout:
+            subprocess.check_call(" ".join(cmd), shell=True, stdout=stdout)
         with open(self.output_file, "rb") as f:
             data = f.read()
         self.assertEqual(data, self.stored_data)
