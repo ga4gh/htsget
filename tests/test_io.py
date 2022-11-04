@@ -33,6 +33,7 @@ class MockedResponse(object):
     """
     Mocked response object for requests.
     """
+
     def __init__(self, ticket, data):
         self.headers = {}
         self.data = data
@@ -54,6 +55,7 @@ class MockedTicketResponse(object):
     """
     Mocked response for when we make a ticket request
     """
+
     def __init__(self, ticket, char_by_char=False):
         self.headers = {}
         self.ticket = ticket
@@ -136,12 +138,41 @@ class MockedRequestsTest(unittest.TestCase):
             self.assertEqual(kwargs["headers"], headers)
             self.assertEqual(kwargs["stream"], True)
 
+    def test_headers(self):
+        custom_headers = {"Header-Name": "value"}
+        bearer_token = "x" * 1024
+
+        args, kwargs = self._htsget_get_with_bearer_token_and_headers(bearer_token, custom_headers)
+
+        headers = {"Authorization": "Bearer {}".format(bearer_token), "Header-Name": "value"}
+        self.assertEqual(kwargs["headers"], headers)
+
+    def test_headers_with_auth_header_and_bearer_token(self):
+        custom_headers = {"Header-Name": "value", "Authorization": "Bearer token"}
+        bearer_token = "x" * 1024
+
+        args, kwargs = self._htsget_get_with_bearer_token_and_headers(bearer_token, custom_headers)
+
+        headers = {"Authorization": "Bearer {}".format(bearer_token), "Header-Name": "value"}
+        self.assertEqual(kwargs["headers"], headers)
+
+    def _htsget_get_with_bearer_token_and_headers(self, bearer_token, custom_headers):
+        ticket_url = "http://ticket.com"
+        ticket = {"htsget": {"urls": []}}
+        returned_response = MockedTicketResponse(json.dumps(ticket).encode())
+        with mock.patch("requests.get", return_value=returned_response) as mocked_get:
+            with tempfile.NamedTemporaryFile("wb+") as f:
+                htsget.get(ticket_url, f, bearer_token=bearer_token, headers=custom_headers)
+                f.seek(0)
+            args, kwargs = mocked_get.call_args
+            return args, kwargs
+
     def test_ticket_char_by_char(self):
         # Tests the streaming code for the ticket response.
         ticket_url = "http://ticket.com"
         ticket = {"htsget": {"urls": []}, "padding": "X" * 10}
         returned_response = MockedTicketResponse(
-                json.dumps(ticket).encode(), char_by_char=True)
+            json.dumps(ticket).encode(), char_by_char=True)
         with mock.patch("requests.get", return_value=returned_response) as mocked_get:
             with tempfile.NamedTemporaryFile("wb+") as f:
                 htsget.get(ticket_url, f)

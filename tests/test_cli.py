@@ -19,6 +19,7 @@ Test cases for the htsget CLI.
 from __future__ import print_function
 from __future__ import division
 
+import json
 import logging
 import os
 import sys
@@ -46,6 +47,7 @@ class TestHtsgetArgumentParser(unittest.TestCase):
     """
     Tests the parser to ensure it parses input values correctly.
     """
+
     def parse_args(self, args):
         parser = cli.get_htsget_parser()
         return parser.parse_args(args)
@@ -152,7 +154,7 @@ class TestHtsgetRun(unittest.TestCase):
     def test_start(self):
         url = "http://example.com/otherstuff"
         reference_name = "chr2"
-        for start in [0, 100, 2**32]:
+        for start in [0, 100, 2 ** 32]:
             args, kwargs = self.run_cmd("{} -O {} -r {} -s {}".format(
                 url, self.output_filename, reference_name, start))
             self.assertEqual(args[0], url)
@@ -172,7 +174,7 @@ class TestHtsgetRun(unittest.TestCase):
     def test_end(self):
         url = "http://example.com/otherstuff"
         reference_name = "chr2"
-        for end in [0, 100, 2**32]:
+        for end in [0, 100, 2 ** 32]:
             args, kwargs = self.run_cmd("{} -O {} -r {} -e {}".format(
                 url, self.output_filename, reference_name, end))
             self.assertEqual(args[0], url)
@@ -192,7 +194,7 @@ class TestHtsgetRun(unittest.TestCase):
     def test_start_end(self):
         url = "http://example.com/otherstuff"
         reference_name = "chr2"
-        for start, end in [(0, 1), (100, 200), (5, 2**32)]:
+        for start, end in [(0, 1), (100, 200), (5, 2 ** 32)]:
             args, kwargs = self.run_cmd("{} -O {} -r {} -s {} -e {}".format(
                 url, self.output_filename, reference_name, start, end))
             self.assertEqual(args[0], url)
@@ -254,6 +256,33 @@ class TestHtsgetRun(unittest.TestCase):
                 url, self.output_filename, bearer_token))
             kwargs["bearer_token"] = bearer_token
 
+    def test_headers(self):
+        url = "http://example.com/otherstuff"
+        headers = '{"Header-Name":"value"}'
+
+        long_cmd = "{} -O {} --headers {}"
+        args, kwargs = self.run_cmd(long_cmd.format(url, self.output_filename, headers))
+        self.assertEqual(kwargs["headers"], json.loads(headers))
+        
+        short_cmd = "{} -O {} -H {}"
+        args, kwargs = self.run_cmd(short_cmd.format(url, self.output_filename, headers))
+        self.assertEqual(kwargs["headers"], json.loads(headers))
+
+    def test_headers_error(self):
+        url = "http://example.com/otherstuff"
+        headers = '"Header-Name":"value"'
+        self._test_headers_error("{} -O {} -H {}".format(url, self.output_filename, headers))
+        self._test_headers_error("{} -O {} --headers {}".format(url, self.output_filename, headers))
+
+    def _test_headers_error(self, cmd):
+        with mock.patch("htsget.get") as mocked_get, \
+                mock.patch("sys.exit") as mocked_exit:
+            parser = cli.get_htsget_parser()
+            args = parser.parse_args(cmd.split())
+            cli.run(args)
+            mocked_get.assert_not_called()
+            mocked_exit.assert_called_once_with(1)
+
     def test_stdout_zero_retries(self):
         url = "http://example.com/stuff"
         args, kwargs = self.run_cmd("{}".format(url))
@@ -270,6 +299,7 @@ class TestVerbosity(unittest.TestCase):
     """
     Tests to ensure the verbosity settings work.
     """
+
     def run_cmd(self, cmd):
         parser = cli.get_htsget_parser()
         args = parser.parse_args(cmd.split())
@@ -303,6 +333,7 @@ class TestRuntimeErrors(unittest.TestCase):
     """
     Test cases to cover the various error conditions that may occur at runtime.
     """
+
     def assert_exception_writes_error_message(self, exception, message):
         parser = cli.get_htsget_parser()
         args = parser.parse_args(["https://some.url"])
