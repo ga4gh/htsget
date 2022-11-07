@@ -35,7 +35,7 @@ def get(
         url, output, reference_name=None, reference_md5=None,
         start=None, end=None, fields=None, tags=None, notags=None,
         data_format=None, max_retries=5, retry_wait=5, timeout=120,
-        bearer_token=None):
+        bearer_token=None, headers=None):
     """
     Runs a request to the specified URL and write the resulting data to
     the specified file-like object.
@@ -71,12 +71,13 @@ def get(
         the bearer token is beyond the scope of htsget; consult the documentation
         for your server for information on authentication and how to obtain a
         valid token.
+    :param headers: Additional headers needed for the requests to the htsget service.
     """
     manager = SynchronousDownloadManager(
         url, output, reference_name=reference_name,
         reference_md5=reference_md5, start=start, end=end, fields=fields, tags=tags,
         notags=notags, data_format=data_format, max_retries=max_retries, timeout=timeout,
-        retry_wait=retry_wait, bearer_token=bearer_token)
+        retry_wait=retry_wait, bearer_token=bearer_token, headers=headers)
     manager.run()
 
 
@@ -85,6 +86,7 @@ class SynchronousDownloadManager(protocol.DownloadManager):
     Class implementing the GA4GH streaming API synchronously using the
     requests library.
     """
+
     def __get(self, *args, **kwargs):
         try:
             response = requests.get(*args, **kwargs)
@@ -122,9 +124,16 @@ class SynchronousDownloadManager(protocol.DownloadManager):
         # callback that checks the headers on the ticket response?
         # TODO Check the Content-Type for encoding and use it here, if provided.
         encoding = "utf-8"
-        headers = {}
+
+        headers = self.headers if self.headers else {}
+
+        if self.bearer_token is not None and "Authorization" in headers:
+            logging.warning("Both the bearer_token and Authorization header have values,"
+                            "the bearer_token will take precedence")
+
         if self.bearer_token is not None:
             headers["Authorization"] = "Bearer {}".format(self.bearer_token)
+
         # TODO should we XXXX out the actual token here in case someone leaks
         # the bearer token to logs??
         logging.debug("handle_ticket_request(url={}, headers={})".format(
@@ -157,6 +166,6 @@ class SynchronousDownloadManager(protocol.DownloadManager):
         # On Windows we seem to get 0 values for duration. Just round up to one second.
         # Rates over intervals less than this are meaningless anyway.
         duration = max(1, duration)
-        rate = (size / (2**20)) / duration
+        rate = (size / (2 ** 20)) / duration
         logging.info("Downloaded {} chunk in {:.2f} seconds @ {:.2f} MiB/s".format(
             humanize.naturalsize(size, binary=True), duration, rate))

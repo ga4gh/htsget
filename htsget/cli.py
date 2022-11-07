@@ -20,10 +20,13 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
+import json
 import logging
 import os
 import signal
 import sys
+
+from json import JSONDecodeError
 
 import htsget
 import htsget.exceptions as exceptions
@@ -61,15 +64,21 @@ def run(args):
                 "Cannot retry failed transfers when writing to stdout. Setting "
                 "max_retries to zero")
             args.max_retries = 0
+
     exit_status = 1
+
     try:
+        headers = json.loads(args.headers) if args.headers else None
         htsget.get(
             args.url, output, reference_name=args.reference_name,
             reference_md5=args.reference_md5, start=args.start,
             end=args.end, data_format=args.format, max_retries=args.max_retries,
             retry_wait=args.retry_wait, timeout=args.timeout,
-            bearer_token=args.bearer_token)
+            bearer_token=args.bearer_token, headers=headers)
         exit_status = 0
+    except JSONDecodeError as json_decode_error:
+        error_message(
+            "Cannot parse the argument value for headers, error: {}".format(str(json_decode_error)))
     except exceptions.ExceptionWrapper as ew:
         error_message(str(ew))
     except exceptions.HtsgetException as he:
@@ -138,6 +147,9 @@ def get_htsget_parser():
     parser.add_argument(
         "--bearer-token", "-b", default=None,
         help="The OAuth2 bearer token to present to the htsget ticket server.")
+    parser.add_argument(
+        "--headers", "-H", type=str, default=None,
+        help="The stringified JSON of HTTP header name-value mappings.")
     return parser
 
 
