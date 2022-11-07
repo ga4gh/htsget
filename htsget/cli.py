@@ -65,30 +65,39 @@ def run(args):
                 "max_retries to zero")
             args.max_retries = 0
 
+    headers, error = _parse_headers(args)
     exit_status = 1
 
+    if not error:
+        try:
+            htsget.get(
+                args.url, output, reference_name=args.reference_name,
+                reference_md5=args.reference_md5, start=args.start,
+                end=args.end, data_format=args.format, max_retries=args.max_retries,
+                retry_wait=args.retry_wait, timeout=args.timeout,
+                bearer_token=args.bearer_token, headers=headers)
+            exit_status = 0
+        except exceptions.ExceptionWrapper as ew:
+            error_message(str(ew))
+        except exceptions.HtsgetException as he:
+            error_message(str(he))
+        except KeyboardInterrupt:
+            error_message("interrupted")
+        finally:
+            if output is not sys.stdout:
+                output.close()
+
+    sys.exit(exit_status)
+
+
+def _parse_headers(args):
+    headers, error = None, None
     try:
         headers = json.loads(args.headers) if args.headers else None
-        htsget.get(
-            args.url, output, reference_name=args.reference_name,
-            reference_md5=args.reference_md5, start=args.start,
-            end=args.end, data_format=args.format, max_retries=args.max_retries,
-            retry_wait=args.retry_wait, timeout=args.timeout,
-            bearer_token=args.bearer_token, headers=headers)
-        exit_status = 0
-    except JSONDecodeError as jsonDecodeError:
-        error_message(
-            "Cannot parse the argument value for headers, error: {}".format(args.headers, str(jsonDecodeError)))
-    except exceptions.ExceptionWrapper as ew:
-        error_message(str(ew))
-    except exceptions.HtsgetException as he:
-        error_message(str(he))
-    except KeyboardInterrupt:
-        error_message("interrupted")
-    finally:
-        if output is not sys.stdout:
-            output.close()
-    sys.exit(exit_status)
+    except JSONDecodeError as json_decode_error:
+        error = "Cannot parse the argument value for headers, error: {}".format(str(json_decode_error))
+
+    return headers, error
 
 
 def get_htsget_parser():
