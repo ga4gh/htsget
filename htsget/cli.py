@@ -76,9 +76,9 @@ def run(args):
             retry_wait=args.retry_wait, timeout=args.timeout,
             bearer_token=args.bearer_token, headers=headers)
         exit_status = 0
-    except JSONDecodeError as jsonDecodeError:
+    except JSONDecodeError as json_decode_error:
         error_message(
-            "Cannot parse the argument value for headers, error: {}".format(args.headers, str(jsonDecodeError)))
+            "Cannot parse the argument value for headers, error: {}".format(str(json_decode_error)))
     except exceptions.ExceptionWrapper as ew:
         error_message(str(ew))
     except exceptions.HtsgetException as he:
